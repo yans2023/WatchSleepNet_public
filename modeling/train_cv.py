@@ -122,7 +122,7 @@ print(
 # Define loss function
 loss_fn = model_config.LOSS_FN
 
-from engine_new import train_cross_validate
+from WatchSleepNet_public.modeling.engine import train_cross_validate
 # Perform cross-validation without transfer learning
 results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc = train_cross_validate(
     use_attention=True,

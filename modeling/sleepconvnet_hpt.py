@@ -9,7 +9,7 @@ import optuna
 warnings.filterwarnings("ignore", category=UserWarning)
 
 from data_setup import create_dataloaders_kfolds
-from models.sleepconvnet2 import SleepConvNet
+from models.sleepconvnet import SleepConvNet
 from config import (
     SleepConvNetConfig,
     dataset_configurations,
@@ -89,7 +89,7 @@ def objective(trial):
         dilation_layers_configs = [(64, 64, 7, d) for d in [2, 4, 8]]
 
     def model_init():
-        from models.sleepconvnet2 import SleepConvNet
+        from models.sleepconvnet import SleepConvNet
 
         return SleepConvNet(
             input_size=750,

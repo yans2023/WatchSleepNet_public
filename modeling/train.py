@@ -18,7 +18,7 @@ from config import (
     SleepConvNetConfig,
     dataset_configurations,
 )
-from engine_new import train, validate_step
+from engine import train, validate_step
 from utils import print_model_info
 
 # --- Reproducibility ---
@@ -125,10 +125,10 @@ training_logs = train(
     patience=model_config.PATIENCE,
     device=DEVICE,
     model_save_path=model_save_path,
-    saved_model_path=None,  # or specify a checkpoint if you want to start from pre-trained
+    saved_model_path=None,
     learning_rate=model_config.LEARNING_RATE,
     weight_decay=model_config.WEIGHT_DECAY,
-    freeze_layers=False,   # or True if you want partial freezing
+    freeze_layers=False,
     # For watchsleepnet2 ablation:
     use_tcn=None,          
     use_attention=None,
@@ -144,7 +144,7 @@ if os.path.exists(final_model_path):
         from models.watchsleepnet import WatchSleepNet
         final_model = WatchSleepNet(
             num_features=model_config.NUM_INPUT_CHANNELS,
-            feature_channels=model_config.FEATURE_CHANNELS,
+            # feature_channels=model_config.FEATURE_CHANNELS,
             num_channels=model_config.NUM_CHANNELS,
             kernel_size=model_config.KERNEL_SIZE,
             hidden_dim=model_config.HIDDEN_DIM,

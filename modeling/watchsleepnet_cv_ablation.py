@@ -7,7 +7,7 @@ from config import WatchSleepNetConfig, dataset_configurations
 from engine import train_cross_validate
 import random
 import numpy as np
-from models.watchsleepnet2 import WatchSleepNet
+from models.watchsleepnet import WatchSleepNet
 
 # Seed settings for reproducibility
 seed = 0

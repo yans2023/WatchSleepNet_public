@@ -10,10 +10,9 @@ from models.insightsleepnet import InsightSleepNet
 from models.sleepconvnet import SleepConvNet
 from config import WatchSleepNetConfig, InsightSleepNetConfig, SleepConvNetConfig, dataset_configurations
 from engine import train, train_and_evaluate, validate_step, train_ablate_evaluate
-from utils import print_model_info
 import random
 import numpy as np
-from models.watchsleepnet2 import WatchSleepNet
+from models.watchsleepnet import WatchSleepNet
 
 # Seed settings for reproducibility
 seed = 0
@@ -85,9 +84,21 @@ test_config = dataset_configurations.get(args.test_dataset, None)
 # Model initialization based on user argument
 if args.model == "watchsleepnet":
     model_config = WatchSleepNetConfig
+    # model = WatchSleepNet(
+    #     num_features=model_config.NUM_INPUT_CHANNELS,
+    #     # feature_channels=model_config.FEATURE_CHANNELS,
+    #     num_channels=model_config.NUM_CHANNELS,
+    #     kernel_size=model_config.KERNEL_SIZE,
+    #     hidden_dim=model_config.HIDDEN_DIM,
+    #     num_heads=model_config.NUM_HEADS,
+    #     num_layers=model_config.NUM_LAYERS,
+    #     tcn_layers=model_config.TCN_LAYERS,
+    #     num_classes=model_config.NUM_CLASSES,
+    #     use_tcn=args.use_tcn,
+    #     use_attention=args.use_attention,
+    # ).to(DEVICE)
     model = WatchSleepNet(
         num_features=model_config.NUM_INPUT_CHANNELS,
-        # feature_channels=model_config.FEATURE_CHANNELS,
         num_channels=model_config.NUM_CHANNELS,
         kernel_size=model_config.KERNEL_SIZE,
         hidden_dim=model_config.HIDDEN_DIM,
@@ -95,8 +106,6 @@ if args.model == "watchsleepnet":
         num_layers=model_config.NUM_LAYERS,
         tcn_layers=model_config.TCN_LAYERS,
         num_classes=model_config.NUM_CLASSES,
-        use_tcn=args.use_tcn,
-        use_attention=args.use_attention,
     ).to(DEVICE)
 
 
@@ -147,17 +156,24 @@ else:
     )
 
     # Train the model
-    results = train(
-        model,
-        args.model,
-        train_dataloader,
-        val_dataloader,
-        optimizer,
-        loss_fn,
+    training_logs = train(
+        model_name=args.model,
+        model_params=model_config,
+        num_classes=model_config.NUM_CLASSES,  
+        train_dataloader=train_dataloader,
+        val_dataloader=val_dataloader,
+        loss_fn=loss_fn,
         num_epochs=model_config.NUM_EPOCHS,
-        device=DEVICE,
         patience=model_config.PATIENCE,
+        device=DEVICE,
         model_save_path=model_save_path,
+        saved_model_path=None,
+        learning_rate=model_config.LEARNING_RATE,
+        weight_decay=model_config.WEIGHT_DECAY,
+        freeze_layers=False,
+        # For watchsleepnet2 ablation:
+        use_tcn=None,          
+        use_attention=None,
     )
 
     # Load the best model and perform final testing

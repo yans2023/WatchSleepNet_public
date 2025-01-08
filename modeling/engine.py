@@ -627,7 +627,6 @@ def setup_model_and_optimizer(
         from models.watchsleepnet import WatchSleepNet
         model = WatchSleepNet(
             num_features=model_params.NUM_INPUT_CHANNELS,
-            feature_channels=model_params.FEATURE_CHANNELS,
             num_channels=model_params.NUM_CHANNELS,
             kernel_size=model_params.KERNEL_SIZE,
             hidden_dim=model_params.HIDDEN_DIM,
@@ -1036,8 +1035,6 @@ def train(
         model_name=model_name,
     )
 
-    # Optionally, reload the best checkpoint for final usage
-    import os
     if best_ckpt_path and os.path.exists(best_ckpt_path):
         model.load_state_dict(torch.load(best_ckpt_path))
 
@@ -1452,3 +1449,186 @@ def train_cross_validate(
         print("Insufficient data for final overall metrics.")
 
     return results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc
+
+def train_ablate_evaluate(
+    model_name,
+    use_tcn,
+    use_attention,
+    model_params,
+    num_classes,
+    dataloader_folds,
+    saved_model_path,
+    learning_rate,
+    weight_decay,
+    loss_fn,
+    num_epochs,
+    patience,
+    device,
+    checkpoint_path=None,
+):
+    """
+    Refactored train_ablate_evaluate function that leverages helper functions
+    for setting up models, running epochs with early stopping, and finalizing each fold.
+
+    Args:
+        model_name (str): One of ["sleepconvnet", "watchsleepnet", "insightsleepnet"].
+        use_tcn (bool): For ablation experiments, indicating whether TCN layers are used.
+        use_attention (bool): For ablation experiments, indicating whether attention is used.
+        model_params (object): Configuration/hyperparameters for the model.
+        num_classes (int): Number of output classes.
+        dataloader_folds (list of tuples): Each tuple is (train_dataloader, val_dataloader, test_dataloader).
+        saved_model_path (str or None): Path to load existing checkpoint before training (optional).
+        learning_rate (float): Learning rate for optimizer.
+        weight_decay (float): L2 regularization for optimizer.
+        loss_fn (callable): Loss function (e.g. CrossEntropyLoss).
+        num_epochs (int): Max epochs.
+        patience (int): Early stopping patience.
+        device (torch.device): 'cuda' or 'cpu'.
+        checkpoint_path (str or None): Base path for saving best checkpoint each fold 
+                                       (will have '_fold{idx}.pt' appended).
+
+    Returns:
+        tuple: (best_results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc)
+    """
+
+    # A dictionary to store aggregated results across folds
+    best_results = {
+        "train_loss": [],
+        "train_acc": [],
+        "train_f1": [],
+        "train_kappa": [],
+        "train_rem_f1": [],
+        "train_auroc": [],
+        "val_loss": [],
+        "val_acc": [],
+        "val_f1": [],
+        "val_kappa": [],
+        "val_rem_f1": [],
+        "val_auroc": [],
+        "test_loss": [],
+        "test_acc": [],
+        "test_f1": [],
+        "test_kappa": [],
+        "test_rem_f1": [],
+        "test_auroc": [],
+    }
+
+    # For final overall metrics across folds
+    all_true_labels = []
+    all_predicted_labels = []
+    all_predicted_probabilities = []
+    all_ahi_values = []
+
+    num_folds = len(dataloader_folds)
+    print(f"Number of folds: {num_folds}")
+
+    # Loop over folds
+    for fold_idx, (train_dataloader, val_dataloader, test_dataloader) in enumerate(dataloader_folds, 1):
+        print(f"\n===== Fold {fold_idx}/{num_folds} =====")
+
+        # Create a fold-specific checkpoint path if checkpoint_path is provided
+        fold_finetune_checkpoint_path = None
+        if checkpoint_path:
+            fold_finetune_checkpoint_path = checkpoint_path.replace(".pt", f"_fold{fold_idx}.pt")
+
+        # 1) Setup model & optimizer for ablation
+        #    If model_name == 'watchsleepnet', we actually want 'watchsleepnet2' with the ablation flags
+        #    Adjust as needed if your 'models.watchsleepnet2' expects these flags differently.
+        model, optimizer = setup_model_and_optimizer(
+            model_name=model_name,
+            model_params=model_params,
+            num_classes=num_classes,
+            device=device,
+            saved_model_path=saved_model_path,   # Load weights if provided
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
+            freeze_layers=False,  # or True if you want partial freezing (comment in or out)
+            use_tcn=use_tcn,
+            use_attention=use_attention,
+        )
+
+        # 2) Run training + validation epochs with multi-metric early stopping
+        best_ckpt_path, training_logs = run_training_epochs(
+            model=model,
+            train_dataloader=train_dataloader,
+            val_dataloader=val_dataloader,
+            loss_fn=loss_fn,
+            optimizer=optimizer,
+            device=device,
+            num_epochs=num_epochs,
+            patience=patience,
+            checkpoint_path=fold_finetune_checkpoint_path,
+            monitor_metrics=("val_kappa", "val_loss"),  # multi-metric
+            monitor_modes=("max", "min"),
+            model_name=model_name,  # needed for special logic like gradient clipping
+        )
+
+        # 3) Finalize fold: reload best checkpoint, evaluate, run test, store logs
+        #    This calls validate_step on train/val, test_step on test,
+        #    and populates best_results plus returns test predictions
+        (
+            test_true,
+            test_pred,
+            test_probs,
+            test_ahi,
+        ) = finalize_fold_or_repeat(
+            model=model,
+            checkpoint_path=best_ckpt_path,
+            train_dataloader=train_dataloader,
+            val_dataloader=val_dataloader,
+            test_dataloader=test_dataloader,
+            loss_fn=loss_fn,
+            device=device,
+            best_results_dict=best_results,
+            do_test=True,
+            task="sleep_staging",  # or pass 'sleep_wake'
+            model_name=model_name,
+        )
+
+        # Accumulate test predictions for overall metrics
+        all_true_labels.extend(test_true)
+        all_predicted_labels.extend(test_pred)
+        all_predicted_probabilities.extend(test_probs)
+        all_ahi_values.extend(test_ahi)
+
+    # ---- 4) Print mean ± std dev for each metric in best_results ----
+    import numpy as np
+    for key, values in best_results.items():
+        if values:
+            mean_val = np.mean(values)
+            std_val = np.std(values)
+            print(f"{key}: {mean_val:.4f} ± {std_val:.4f}")
+        else:
+            print(f"{key}: No data available")
+
+    # ---- 5) Compute overall metrics across folds ----
+    print("\nOverall Metrics (Ablation):")
+    overall_acc, overall_f1, overall_kappa, rem_f1, auroc = compute_metrics(
+        all_predicted_labels,
+        all_true_labels,
+        pred_probs=all_predicted_probabilities,
+        testing=True,
+        task="sleep_staging",
+        print_conf_matrix=True,
+    )
+    print(f"Overall Accuracy: {overall_acc:.4f}")
+    print(f"Overall F1 Score: {overall_f1:.4f}")
+    print(f"Overall Kappa: {overall_kappa:.4f}")
+    print(f"REM F1 Score: {rem_f1:.4f}")
+    print(f"AUROC: {auroc:.4f}")
+
+    # ---- AHI category metrics ----
+    print("\nMetrics per AHI Category:")
+    metrics_per_category = compute_metrics_per_ahi_category(
+        all_true_labels,
+        all_predicted_labels,
+        all_predicted_probabilities,
+        all_ahi_values,
+    )
+    for category, cat_metrics in metrics_per_category.items():
+        print(f"\nMetrics for AHI Category '{category}':")
+        for metric_name, val in cat_metrics.items():
+            print(f"  {metric_name}: {val:.4f}")
+
+    # Return aggregated results plus final overall metrics
+    return best_results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc
