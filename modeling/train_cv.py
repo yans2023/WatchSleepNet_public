@@ -2,8 +2,8 @@ import os
 import torch
 import argparse
 import warnings
-
-warnings.filterwarnings("ignore", category=UserWarning)
+import random
+import numpy as np
 
 from data_setup import create_dataloaders, create_dataloaders_kfolds
 from models.watchsleepnet import WatchSleepNet  # Updated model name
@@ -15,132 +15,168 @@ from config import (
     SleepConvNetConfig,
     dataset_configurations,
 )
-from engine import train, train_and_evaluate, validate_step, train_cross_validate
+from engine import train_cross_validate  # Unified import from engine.py
 from utils import print_model_info
-import random
-import numpy as np
 
 # Seed settings for reproducibility
-seed = 0
-np.random.seed(seed)
-random.seed(seed)
-torch.manual_seed(seed)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+def set_seed(seed: int = 0):
+    """Set seed for reproducibility."""
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
-# System Settings
-NUM_WORKERS = os.cpu_count() // 2
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+def get_device() -> str:
+    """Determine the device to run the model on."""
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
-# Parse arguments
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--train_dataset",
-    type=str,
-    default="shhs_mesa_ibi",
-    choices=[
-        "shhs_ibi",
-        "mesa_eibi",
-        "mesa_pibi",
-        "shhs_mesa_ibi",
-    ],
-)
+def parse_arguments():
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description="Train Sleep Classification Models")
+    parser.add_argument(
+        "--train_dataset",
+        type=str,
+        default="shhs_mesa_ibi",
+        choices=[
+            "shhs_ibi",
+            "mesa_eibi",
+            "mesa_pibi",
+            "shhs_mesa_ibi",
+        ],
+        help="Dataset to train on."
+    )
+    parser.add_argument(
+        "--task",
+        type=str,
+        default="sleep_staging",
+        choices=["sleep_staging", "sleep_wake"],
+        help="Task to perform."
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="watchsleepnet",
+        choices=["watchsleepnet", "insightsleepnet", "sleepconvnet"],
+        help="Model architecture to use."
+    )
+    return parser.parse_args()
 
-parser.add_argument(
-    "--task", type=str, default="sleep_staging", choices=["sleep_staging", "sleep_wake"]
-)
-parser.add_argument(
-    "--model",
-    type=str,
-    default="watchsleepnet",  # Renamed from lstm to watchsleepnet
-    choices=["watchsleepnet", "insightsleepnet", "sleepconvnet"],
-)
-args = parser.parse_args()
+def initialize_model(model_name: str, config: dict, device: str) -> torch.nn.Module:
+    """Initialize the model based on the selected architecture."""
+    if model_name == "watchsleepnet":
+        return WatchSleepNet(
+            num_features=config['num_features'],
+            num_channels=config['num_channels'],
+            kernel_size=config['kernel_size'],
+            hidden_dim=config['hidden_dim'],
+            num_heads=config['num_heads'],
+            num_layers=config['num_layers'],
+            tcn_layers=config['tcn_layers'],
+            num_classes=config['num_classes'],
+        ).to(device)
+    
+    elif model_name == "insightsleepnet":
+        return InsightSleepNet(
+            input_size=config['input_size'],
+            output_size=config['output_size']
+        ).to(device)
+    
+    elif model_name == "sleepconvnet":
+        return SleepConvNet().to(device)
+    
+    else:
+        raise ValueError(f"Model '{model_name}' is not recognized.")
 
+def main():
+    # Suppress UserWarnings
+    warnings.filterwarnings("ignore", category=UserWarning)
+    
+    # Set seed for reproducibility
+    set_seed(seed=0)
+    
+    # Determine device
+    device = get_device()
+    
+    # Parse command-line arguments
+    args = parse_arguments()
+    
+    # Retrieve configuration based on the dataset argument
+    train_config = dataset_configurations.get(args.train_dataset)
+    if train_config is None:
+        raise ValueError(f"Configuration for dataset '{args.train_dataset}' not found.")
+    
+    # Model initialization based on user argument
+    model_config_class = None
+    if args.model == "watchsleepnet":
+        model_config_class = WatchSleepNetConfig
+    elif args.model == "insightsleepnet":
+        model_config_class = InsightSleepNetConfig
+    elif args.model == "sleepconvnet":
+        model_config_class = SleepConvNetConfig
+    else:
+        raise ValueError("Model not recognized.")
+    
+    # Convert model config to dict
+    model_config = model_config_class.to_dict()
+    
+    # Initialize model
+    model = initialize_model(args.model, model_config, device)
+    
+    # Generate dynamic save path for model and analysis
+    model_save_path = train_config["get_model_save_path"](
+        model_name=args.model,
+        dataset_name=args.train_dataset,
+        version="vtrial"
+    )
+    
+    print(f"Model Save Path: {model_save_path}")
+    
+    # Create dataloaders with cross-validation
+    print(f"Performing cross-validation on dataset: {args.train_dataset}")
+    dataloader_folds = create_dataloaders_kfolds(
+        dir=train_config["directory"],
+        dataset=args.train_dataset,
+        num_folds=5,
+        val_ratio=0.2,
+        batch_size=model_config.get("BATCH_SIZE", 16),
+        num_workers=os.cpu_count() // 2,
+        multiplier=train_config.get("multiplier", 1),
+        downsampling_rate=train_config.get("downsampling_rate", 1),
+    )
+    
+    print(f"Model save path: {model_save_path}")
+    
+    # Define loss function
+    loss_fn = model_config.get('LOSS_FN')
+    
+    # Perform cross-validation without transfer learning
+    results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc = train_cross_validate(
+        model_name=args.model,
+        model_params=model_config,  # Contains 'use_attention', 'use_tcn', 'num_classes', etc.
+        dataloader_folds=dataloader_folds,
+        saved_model_path=None,  # Assuming you're training from scratch
+        learning_rate=model_config.get('LEARNING_RATE', 1e-3),
+        weight_decay=model_config.get('WEIGHT_DECAY', 1e-4),
+        loss_fn=loss_fn,
+        num_epochs=model_config.get('NUM_EPOCHS', 100),
+        patience=model_config.get('PATIENCE', 10),
+        device=device,
+        checkpoint_path=train_config["get_model_save_path"](
+            model_name=args.model,
+            dataset_name=args.train_dataset, 
+            version="cv_no_transfer"
+        ),
+        freeze_layers=False,  # Set to True if you need to freeze layers
+    )
+    
+    # Optionally, print or log the results
+    print("Cross-Validation Results:")
+    print(f"Overall Accuracy: {overall_acc}")
+    print(f"Overall F1 Score: {overall_f1}")
+    print(f"Overall Kappa: {overall_kappa}")
+    print(f"REM F1 Score: {rem_f1}")
+    print(f"AUROC: {auroc}")
 
-# Retrieve configuration based on the dataset argument
-train_config = dataset_configurations.get(args.train_dataset, None)
-
-# Model initialization based on user argument
-if args.model == "watchsleepnet":
-    model_config = WatchSleepNetConfig
-    model = WatchSleepNet(
-        num_features=model_config.NUM_INPUT_CHANNELS,
-        feature_channels=model_config.FEATURE_CHANNELS,
-        num_channels=model_config.NUM_CHANNELS,
-        kernel_size=model_config.KERNEL_SIZE,
-        hidden_dim=model_config.HIDDEN_DIM,
-        num_heads=model_config.NUM_HEADS,
-        num_layers=model_config.NUM_LAYERS,
-        tcn_layers=model_config.TCN_LAYERS,
-        num_classes=model_config.NUM_CLASSES,
-    ).to(DEVICE)
-
-
-elif args.model == "insightsleepnet":
-    model_config = InsightSleepNetConfig
-    model = InsightSleepNet(
-        input_size=model_config.INPUT_SIZE, output_size=model_config.OUTPUT_SIZE
-    ).to(DEVICE)
-
-
-elif args.model == "sleepconvnet":
-    model_config = SleepConvNetConfig
-    model = SleepConvNet().to(DEVICE)
-
-else:
-    raise ValueError("Model not recognized.")
-
-# Generate dynamic save path for model and analysis
-model_save_path = dataset_configurations[args.train_dataset]["get_model_save_path"](
-    model_name=args.model, dataset_name=args.train_dataset, version="vtrial"
-)
-
-print(model_save_path)
-
-
-# Replace the finetuning step with cross-validation
-print("Perform cross-validation on:", args.train_dataset)
-dataloader_folds = create_dataloaders_kfolds(
-    dir=train_config["directory"],
-    dataset=args.train_dataset,
-    num_folds=5,
-    val_ratio=0.2,
-    batch_size=model_config.BATCH_SIZE,
-    num_workers=NUM_WORKERS,
-    multiplier=train_config["multiplier"],
-    downsampling_rate=train_config["downsampling_rate"],
-)
-
-print(
-    "Model save path:",
-    train_config["get_model_save_path"](
-        model_name=args.model, dataset_name=args.train_dataset, version="vtrial"
-    ),
-)
-
-# Define loss function
-loss_fn = model_config.LOSS_FN
-
-from WatchSleepNet_public.modeling.engine import train_cross_validate
-# Perform cross-validation without transfer learning
-results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc = train_cross_validate(
-    use_attention=True,
-    use_tcn=True,
-    model_name=args.model,
-    model_params=model_config,
-    # num_classes=model_config.NUM_CLASSES,
-    num_classes = 3,
-    dataloader_folds=dataloader_folds,
-    learning_rate=model_config.LEARNING_RATE,
-    weight_decay=model_config.WEIGHT_DECAY,
-    loss_fn=loss_fn,
-    num_epochs=model_config.NUM_EPOCHS,
-    patience=model_config.PATIENCE,
-    device=DEVICE,
-    checkpoint_path=train_config["get_model_save_path"](
-        model_name=args.model, dataset_name=args.train_dataset, 
-        # version="vtrial"
-        version="cv_no_transfer"
-    ),
-)
+if __name__ == "__main__":
+    main()
