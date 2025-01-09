@@ -59,7 +59,7 @@ dataset_configurations = {
         ),
     },
     "shhs_mesa_ibi": {
-        "directory": Path("/mnt/nvme2/SHHS_MESA_IBI"),
+        "directory": Path("/home/willkewang/Datasets/SHHS_MESA_IBI"),
         "downsampling_rate": 1,
         "multiplier": 1,
         "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
@@ -76,7 +76,7 @@ dataset_configurations = {
         ),
     },
     "dreamt_pibi": {
-        "directory": Path("/mnt/nvme2/DREAMT_PIBI_SE"),
+        "directory": Path("/home/willkewang/Datasets/DREAMT_PIBI_SE"),
         "downsampling_rate": 1,
         "multiplier": 1,
         "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
