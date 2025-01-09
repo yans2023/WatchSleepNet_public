@@ -3,4 +3,5 @@ __pycache__
 *.pt
 *.pth
 *.onnx
-./modeling/config.py
+*config.py
+*config_back.py
