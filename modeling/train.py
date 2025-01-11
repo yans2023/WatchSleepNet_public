@@ -81,41 +81,7 @@ elif args.model == "sleepconvnet":
 else:
     raise ValueError("Model not recognized.")
 
-# --- Convert model_config to a dictionary ---
-# Assuming each Config class has a 'to_dict()' method.
-# If not, you'll need to manually construct the dictionary.
-# Example implementation of to_dict() is shown below.
-
-def config_to_dict(config):
-    """
-    Converts a Config object to a dictionary.
-    Assumes that all relevant attributes are defined and should be included.
-    """
-    # List all attributes that need to be included in model_params
-    # Modify this list based on your actual Config classes
-    params = {
-        "num_features": getattr(config, "NUM_INPUT_CHANNELS", None),
-        "input_size": getattr(config, "INPUT_SIZE", None),
-        "output_size": getattr(config, "OUTPUT_SIZE", None),
-        "num_channels": getattr(config, "NUM_CHANNELS", None),
-        "kernel_size": getattr(config, "KERNEL_SIZE", None),
-        "hidden_dim": getattr(config, "HIDDEN_DIM", None),
-        "num_heads": getattr(config, "NUM_HEADS", None),
-        "num_layers": getattr(config, "NUM_LAYERS", None),
-        "tcn_layers": getattr(config, "TCN_LAYERS", None),
-        "num_classes": getattr(config, "NUM_CLASSES", None),
-        "n_filters": getattr(config, "N_FILTERS", None),
-        "bottleneck_channels": getattr(config, "BOTTLENECK_CHANNELS", None),
-        "kernel_sizes": getattr(config, "KERNEL_SIZES", None),
-        "num_inception_blocks": getattr(config, "NUM_INCEPTION_BLOCKS", None),
-        "use_residual": getattr(config, "USE_RESIDUAL", None),
-        "dropout_rate": getattr(config, "DROPOUT_RATE", None),
-        # Add other parameters as needed
-    }
-    # Remove keys with None values
-    return {k: v for k, v in params.items() if v is not None}
-
-model_params = config_to_dict(model_config)
+model_params = model_config.to_dict()
 
 # --- Construct a path to save the model checkpoint ---
 model_save_path = train_config["get_model_save_path"](

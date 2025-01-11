@@ -24,7 +24,7 @@ from config import (
     InsightSleepNetConfig,
     dataset_configurations,
 )
-from engine import train_cross_validate_hpo  # Ensure this import references the correct function
+from engine import train_cross_validate_hpo  # Make sure you have the correct import path
 
 # ---------------------
 # Logging Configuration
@@ -42,9 +42,6 @@ logger = logging.getLogger(__name__)
 def set_seed(seed: int = 0):
     """
     Set seed for reproducibility.
-
-    Args:
-        seed (int): The seed value to use.
     """
     np.random.seed(seed)
     random.seed(seed)
@@ -60,9 +57,6 @@ def set_seed(seed: int = 0):
 def get_device() -> torch.device:
     """
     Determine the computation device (CPU or CUDA).
-
-    Returns:
-        torch.device: The device to use.
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Computation device set to: {device}")
@@ -74,9 +68,6 @@ def get_device() -> torch.device:
 def parse_arguments() -> argparse.Namespace:
     """
     Parse command-line arguments.
-
-    Returns:
-        argparse.Namespace: Parsed arguments.
     """
     parser = argparse.ArgumentParser(description="Hyperparameter Optimization for InsightSleepNet")
 
@@ -110,46 +101,80 @@ def parse_arguments() -> argparse.Namespace:
 def objective(trial):
     """
     Objective function for Optuna hyperparameter optimization.
-
-    Args:
-        trial (optuna.trial.Trial): Optuna trial object.
-
-    Returns:
-        float: The metric to maximize (e.g., Cohen's Kappa).
     """
-    # 1) Sample hyperparameters
-    n_filters = trial.suggest_categorical("n_filters", [24, 32])
-    bottleneck_channels = trial.suggest_categorical("bottleneck_channels", [16, 32])
-    kernel_sizes = trial.suggest_categorical(
-        "kernel_sizes",
-        [
-            [5, 11, 23],
-            [9, 19, 39],
-        ],
-    )
-    num_inception_blocks = trial.suggest_int("num_inception_blocks", 2, 4)
-    use_residual = trial.suggest_categorical("use_residual", [True, False])
-    dropout_rate = 0.2  # Fixed as per current setup; uncomment to tune
-    # dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.3)
 
-    # 2) Define model_init to create an InsightSleepNet with the chosen hyperparameters
+    #
+    # 1) Sample the total number of blocks (4, 5, or 6).
+    #
+    num_blocks = trial.suggest_categorical("num_blocks", [4, 5, 6])
+
+    #
+    # 2) Sample a "last_layers_size" parameter: "small" or "big".
+    #
+    # We'll interpret that as how large the n_filters are in the last 1 or 2 blocks.
+    #
+    last_layers_size = trial.suggest_categorical("last_layers_size", ["small", "big"])
+
+    #
+    # 3) Build block_configs based on the above choices
+    #
+    # The first few blocks might use modest expansions, and the last block or two
+    # might differ based on "small" vs "big".
+    #
+    # For example, each entry is a dict describing that block's "in_channels", "n_filters", etc.
+    # You can adapt to your actual architecture expansions.
+    #
+    base_block = {
+        "kernel_sizes": [9, 19, 39],
+        "bottleneck_channels": 16,
+        "use_residual": True,
+    }
+
+    block_configs = []
+    in_ch = 32  # e.g., after initial_conv if you do something like initial_conv->32
+
+    for b_idx in range(num_blocks):
+        # Decide how big "n_filters" is for the block
+        if b_idx < num_blocks - 1:
+            # Middle blocks
+            n_filters = 16 if last_layers_size == "small" else 32
+        else:
+            # The last block
+            n_filters = 32 if last_layers_size == "small" else 64
+
+        # Create a copy
+        block_dict = {
+            "in_channels": in_ch,
+            "n_filters": n_filters,
+            "kernel_sizes": base_block["kernel_sizes"],
+            "bottleneck_channels": base_block["bottleneck_channels"],
+            "use_residual": base_block["use_residual"],
+        }
+        block_configs.append(block_dict)
+
+        # Update in_channels for the next block
+        # If we use_residual, final out_channels = 4*n_filters
+        in_ch = 4 * n_filters
+
+    #
+    # 4) Create the model_init function that instantiates InsightSleepNet with block_configs
+    #
     def model_init():
         from models.insightsleepnet import InsightSleepNet
         model = InsightSleepNet(
-            input_size=750,
-            output_size=3,  # or 2 if "sleep_wake"
-            n_filters=n_filters,
-            bottleneck_channels=bottleneck_channels,
-            kernel_sizes=kernel_sizes,
-            num_inception_blocks=num_inception_blocks,
-            use_residual=use_residual,
-            dropout_rate=dropout_rate,
+            input_size=750,    # or  your dynamic "input_size" from config
+            output_size=3,     # or 2 if "sleep_wake"
+            block_configs=block_configs,
+            # Possibly also set an "initial_conv_out=32" or so
+            initial_conv_out=32,
+            dropout_rate=0.2,  # e.g. fixed
             activation=nn.ReLU(),
         )
-        return model  # We'll move the .to(device) step inside the HPO function or the engine if we want
+        return model
 
-    # 3) Cross-validate using train_cross_validate_hpo
-    #    We pass 'model_init' so the engine can create a new model for each fold.
+    #
+    # 5) Cross-validate using train_cross_validate_hpo
+    #
     checkpoint_path = train_config["get_model_save_path"](
         model_name="insightsleepnet",
         dataset_name=args.train_dataset,
@@ -179,37 +204,37 @@ def objective(trial):
         logger.error(f"An error occurred during training: {e}")
         raise TrialPruned()
 
-    # Return the metric you want to maximize; let's say overall_kappa
+    # Return the metric you want to maximize
     return overall_kappa
 
 # ---------------------
 # Main Function
 # ---------------------
 def main():
-    # Set seed for reproducibility
+    # 1) Set seed for reproducibility
     set_seed(seed=0)
 
-    # Determine computation device
-    global DEVICE  # To ensure DEVICE is accessible inside objective
+    # 2) Determine computation device
+    global DEVICE
     DEVICE = get_device()
 
-    # Parse command-line arguments
-    global args  # To ensure args is accessible inside objective
+    # 3) Parse command-line arguments
+    global args
     args = parse_arguments()
 
-    # Retrieve configuration based on the dataset argument
-    global train_config  # To ensure train_config is accessible inside objective
+    # 4) Retrieve configuration for dataset
+    global train_config
     train_config = dataset_configurations.get(args.train_dataset, None)
     if train_config is None:
         logger.error(f"No config found for dataset '{args.train_dataset}'.")
         raise ValueError(f"No config found for dataset '{args.train_dataset}'.")
 
-    # Initialize model configuration
-    global model_config  # To ensure model_config is accessible inside objective
+    # 5) Initialize model configuration
+    global model_config
     model_config = InsightSleepNetConfig
 
-    # Create folds for cross-validation
-    global dataloader_folds  # To ensure dataloader_folds is accessible inside objective
+    # 6) Create folds for cross-validation
+    global dataloader_folds
     dataloader_folds = create_dataloaders_kfolds(
         dir=train_config["directory"],
         dataset=args.train_dataset,
@@ -220,20 +245,19 @@ def main():
         multiplier=train_config["multiplier"],
         downsampling_rate=train_config["downsampling_rate"],
     )
-
     logger.info("Dataloaders for cross-validation created.")
 
-    # Retrieve loss function
-    global loss_fn  # To ensure loss_fn is accessible inside objective
+    # 7) Retrieve loss function
+    global loss_fn
     loss_fn = model_config.LOSS_FN
 
-    # Run Optuna study
+    # 8) Run Optuna study
     study = optuna.create_study(direction="maximize")
     logger.info("Optuna study created. Starting optimization...")
 
-    study.optimize(objective, n_trials=10)
+    study.optimize(objective, n_trials=5)  # e.g., small # of trials
 
-    # Log best trial
+    # 9) Log best trial
     logger.info("Optimization completed.")
     logger.info("Best trial:")
     trial = study.best_trial
@@ -242,7 +266,7 @@ def main():
     for key, value in trial.params.items():
         logger.info(f"    {key}: {value}")
 
-    # Optionally, save the study results to a file
+    # Optionally, save results
     os.makedirs("optuna_studies", exist_ok=True)
     study.trials_dataframe().to_csv("optuna_studies/insightsleepnet_hpo_results.csv", index=False)
     logger.info("Optuna study results saved to 'optuna_studies/insightsleepnet_hpo_results.csv'.")

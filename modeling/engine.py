@@ -692,17 +692,24 @@ def setup_model_and_optimizer(
         ).to(device)
 
     elif model_name == "insightsleepnet":
-        model = InsightSleepNet(
-            input_size=model_params.get("input_size", 750),
-            output_size=model_params.get("output_size", 3),
-            n_filters=model_params.get("n_filters", 32),
-            bottleneck_channels=model_params.get("bottleneck_channels", 32),
-            kernel_sizes=model_params.get("kernel_sizes", [9, 19, 39]),
-            num_inception_blocks=model_params.get("num_inception_blocks", 1),
-            use_residual=model_params.get("use_residual", False),
-            dropout_rate=model_params.get("dropout_rate", 0.2),
-            activation=model_params.get("activation", nn.ReLU()),
-        ).to(device)
+        from models.insightsleepnet import InsightSleepNet
+
+        # 1) Check if the user is passing a "block_configs" list
+        block_configs = model_params.get("block_configs", None)
+        
+        if block_configs is not None:
+            model = InsightSleepNet(
+                input_size = model_params.get("input_size", 750),
+                output_size = model_params.get("output_size", 3),
+                block_configs = block_configs,
+                dropout_rate = model_params.get("dropout_rate", 0.2),
+                final_pool_size = model_params.get("final_pool_size", 1100),  
+                activation = model_params.get("activation", nn.ReLU())
+            ).to(device)
+        
+        else:
+            print("[setup_model_and_optimizer] 'block_configs' not found in model_params. InsightSleepNet cannot be initialized.")
+            return None, None
 
     elif model_name == "watchsleepnet":
         model = WatchSleepNet(

@@ -151,9 +151,9 @@ class WatchSleepNetConfig:
     
 class InsightSleepNetConfig:
     """
-    Configuration for InsightSleepNet, with updated best hyperparams from HPO.
+    Configuration for InsightSleepNet, defaulting to the old multi-block architecture.
     """
-    # Training hyperparams
+    # --- Training hyperparams ---
     BATCH_SIZE = 4
     LEARNING_RATE = 1e-5
     NUM_EPOCHS = 100
@@ -162,42 +162,84 @@ class InsightSleepNetConfig:
     LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
     NUM_CLASSES = 3
 
-    # Best model hyperparams from your tuning
-    INPUT_SIZE = 750
-    OUTPUT_SIZE = 3
-    N_FILTERS = 32
-    BOTTLENECK_CHANNELS = 16
-    KERNEL_SIZES = [9, 19, 39]
-    NUM_INCEPTION_BLOCKS = 3
-    USE_RESIDUAL = False
+    # --- Old Architecture Defaults (multi-block) ---
+    INPUT_SIZE = 750    # Each segment length
+    OUTPUT_SIZE = 3     # e.g., number of classes
     DROPOUT_RATE = 0.2
-    # Possibly define activation in code, or keep as a field
-    ACTIVATION = nn.ReLU()  
+    ACTIVATION = nn.ReLU()
+
+    # Instead of num_inception_blocks/n_filters, we define block-by-block:
+    # (in_channels, n_filters, bottleneck, kernel_sizes, use_residual)
+    # matching your old code’s 6-block progression from 32->64->64->128->256->512 channels.
+    BLOCK_CONFIGS = [
+        {
+            "in_channels": 32,   "n_filters": 8,
+            "bottleneck_channels": 8,
+            "kernel_sizes": [5,11,23],
+            "use_residual": True
+        },
+        {
+            "in_channels": 32,   "n_filters": 16,
+            "bottleneck_channels": 16,
+            "kernel_sizes": [5,11,23],
+            "use_residual": True
+        },
+        {
+            "in_channels": 64,   "n_filters": 16,
+            "bottleneck_channels": 16,
+            "kernel_sizes": [5,11,23],
+            "use_residual": True
+        },
+        {
+            "in_channels": 64,   "n_filters": 32,
+            "bottleneck_channels": 32,
+            "kernel_sizes": [5,11,23],
+            "use_residual": True
+        },
+        {
+            "in_channels": 128,  "n_filters": 64,
+            "bottleneck_channels": 64,
+            "kernel_sizes": [5,11,23],
+            "use_residual": True
+        },
+        {
+            "in_channels": 256,  "n_filters": 128,
+            "bottleneck_channels": 128,
+            "kernel_sizes": [5,11,23],
+            "use_residual": True
+        },
+    ]
+
+    # For the initial conv “Conv1d(1,32, kernel_size=40, stride=20)” => out_channels=32
+    INITIAL_CONV_OUT = 32
+    # Then final pooling => "AdaptiveAvgPool1d(1100)" 
+    FINAL_POOL_SIZE = 1100
 
     @classmethod
     def to_dict(cls):
         """
         Convert the class fields into a dict for setup_model_and_optimizer(...).
+        The key 'block_configs' will tell our new parametric InsightSleepNet 
+        to build the 6-block progression (old architecture).
         """
         return {
             # For the model constructor
-            "input_size": cls.INPUT_SIZE,
-            "output_size": cls.OUTPUT_SIZE,
-            "n_filters": cls.N_FILTERS,
-            "bottleneck_channels": cls.BOTTLENECK_CHANNELS,
-            "kernel_sizes": cls.KERNEL_SIZES,
-            "num_inception_blocks": cls.NUM_INCEPTION_BLOCKS,
-            "use_residual": cls.USE_RESIDUAL,
-            "dropout_rate": cls.DROPOUT_RATE,
-            "activation": cls.ACTIVATION,
-            "num_classes": cls.NUM_CLASSES,
+            "input_size":       cls.INPUT_SIZE,
+            "output_size":      cls.OUTPUT_SIZE,
+            "dropout_rate":     cls.DROPOUT_RATE,
+            "activation":       cls.ACTIVATION,
+            "block_configs":    cls.BLOCK_CONFIGS,       # Old architecture blocks
+            "initial_conv_out": cls.INITIAL_CONV_OUT,
+            "final_pool_size":  cls.FINAL_POOL_SIZE,
+            "num_classes":      cls.NUM_CLASSES,
+
             # --- Training hyperparams ---
-            "BATCH_SIZE": cls.BATCH_SIZE,
+            "BATCH_SIZE":    cls.BATCH_SIZE,
             "LEARNING_RATE": cls.LEARNING_RATE,
-            "WEIGHT_DECAY": cls.WEIGHT_DECAY,
-            "NUM_EPOCHS": cls.NUM_EPOCHS,
-            "PATIENCE": cls.PATIENCE,
-            "LOSS_FN": cls.LOSS_FN,
+            "WEIGHT_DECAY":  cls.WEIGHT_DECAY,
+            "NUM_EPOCHS":    cls.NUM_EPOCHS,
+            "PATIENCE":      cls.PATIENCE,
+            "LOSS_FN":       cls.LOSS_FN,
         }
     
 class SleepConvNetConfig:
