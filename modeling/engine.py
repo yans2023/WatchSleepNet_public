@@ -1098,8 +1098,8 @@ def train(
         num_epochs=num_epochs,
         patience=patience,
         checkpoint_path=model_save_path,   # Where to save the best model
-        monitor_metrics=("val_loss",),     # or multiple metrics, e.g. ("val_kappa","val_loss")
-        monitor_modes=("min",),            # corresponding "max"/"min"
+        monitor_metrics=("val_kappa", "val_loss"),  # <--- Now watch both Kappa (max) and Loss (min)
+        monitor_modes=("max", "min"),               # <--- Kappa is max, Loss is min
         model_name=model_name,             # if special grad clipping needed
     )
 

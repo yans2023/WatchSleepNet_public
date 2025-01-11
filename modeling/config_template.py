@@ -160,6 +160,7 @@ class InsightSleepNetConfig:
     PATIENCE = 5
     WEIGHT_DECAY = 1e-4
     LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
+    NUM_CLASSES = 3
 
     # Best model hyperparams from your tuning
     INPUT_SIZE = 750
@@ -189,6 +190,7 @@ class InsightSleepNetConfig:
             "use_residual": cls.USE_RESIDUAL,
             "dropout_rate": cls.DROPOUT_RATE,
             "activation": cls.ACTIVATION,
+            "num_classes": cls.NUM_CLASSES,
             # --- Training hyperparams ---
             "BATCH_SIZE": cls.BATCH_SIZE,
             "LEARNING_RATE": cls.LEARNING_RATE,

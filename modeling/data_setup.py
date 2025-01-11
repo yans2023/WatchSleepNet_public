@@ -453,27 +453,6 @@ def test_experiment_dataloaders(
 
 # Example usage
 if __name__ == "__main__":
-    # DIRECTORY = Path("/mnt/nvme2/DREAMT_PIBI_SE")
-    # DATASET = "dreamt_pibi"
-    # DIRECTORY = Path("/mnt/nvme2/SHHS_MESA_IBI")
-    # DATASET = "shhs_mesa_ibi"
-    # DOWNSAMPLING_RATE = 1
-    # MULTIPLIER = 1
-
-    # dataloader_folds = create_dataloaders_kfolds(
-    #     dir=DIRECTORY,
-    #     dataset=DATASET,
-    #     num_folds=5,
-    #     val_ratio=0.1,
-    #     batch_size=16,
-    #     num_workers=8,
-    #     multiplier=MULTIPLIER,
-    #     downsampling_rate=DOWNSAMPLING_RATE,
-    # )
-
-    # test_dataloader_folds(dataloader_folds)
-
-    # Test the dataloaders for both Control and Data Drift experiments
     test_experiment_dataloaders(
         shhs_mesa_dir = Path("/mnt/nvme2/") / "SHHS_MESA_IBI", 
         dreamt_dir = Path("/mnt/nvme2/") / "DREAMT_PIBI_SE", 
