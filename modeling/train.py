@@ -1,5 +1,7 @@
 import os
+
 import torch
+from torch import nn
 import argparse
 import warnings
 import random
@@ -18,7 +20,7 @@ from config import (
     SleepConvNetConfig,
     dataset_configurations,
 )
-from engine import train, validate_step  # Updated import to 'engine_new'
+from engine import train, validate_step, setup_model_and_optimizer
 from utils import print_model_info
 
 # --- Reproducibility ---
@@ -141,39 +143,53 @@ print("\nTraining complete. Attempting final test evaluation...")
 final_model_path = model_save_path
 if os.path.exists(final_model_path):
     print("Loading the best model from checkpoint for final evaluation.")
-    # Re-instantiate the appropriate model based on args.model
-    if args.model == "watchsleepnet":
-        from models.watchsleepnet import WatchSleepNet
-        final_model = WatchSleepNet(
-            num_features=model_config.NUM_INPUT_CHANNELS,
-            # feature_channels=model_config.FEATURE_CHANNELS,  # Uncomment if applicable
-            num_channels=model_config.NUM_CHANNELS,
-            kernel_size=model_config.KERNEL_SIZE,
-            hidden_dim=model_config.HIDDEN_DIM,
-            num_heads=model_config.NUM_HEADS,
-            num_layers=model_config.NUM_LAYERS,
-            tcn_layers=model_config.TCN_LAYERS,
-            num_classes=model_config.NUM_CLASSES,
-            # Include other parameters as needed
+    if args.model == "sleepconvnet":
+        final_model = SleepConvNet(
+            input_size=model_params.get("input_size", 750),
+            target_size=model_params.get("target_size", 256),
+            num_segments=model_params.get("num_segments", 1100),
+            num_classes=model_params.get("num_classes", 3),
+            dropout_rate=model_params.get("dropout_rate", 0.2),
+            conv_layers_configs=model_params.get("conv_layers_configs", None),
+            dilation_layers_configs=model_params.get("dilation_layers_configs", None),
+            use_residual=model_params.get("use_residual", True),
         ).to(DEVICE)
 
     elif args.model == "insightsleepnet":
         from models.insightsleepnet import InsightSleepNet
-        final_model = InsightSleepNet(
-            input_size=model_config.INPUT_SIZE,
-            output_size=model_config.OUTPUT_SIZE,
-            # Include other parameters as needed
-        ).to(DEVICE)
 
-    elif args.model == "sleepconvnet":
-        from models.sleepconvnet import SleepConvNet
-        final_model = SleepConvNet(
-            # Initialize with necessary parameters
+        # 1) Check if the user is passing a "block_configs" list
+        block_configs = model_params.get("block_configs", None)
+        
+        if block_configs is not None:
+            final_model = InsightSleepNet(
+                input_size = model_params.get("input_size", 750),
+                output_size = model_params.get("output_size", 3),
+                block_configs = block_configs,
+                dropout_rate = model_params.get("dropout_rate", 0.2),
+                final_pool_size = model_params.get("final_pool_size", 1100),  
+                activation = model_params.get("activation", nn.ReLU())
+            ).to(DEVICE)
+        
+        else:
+            print("[setup_model_and_optimizer] 'block_configs' not found in model_params. InsightSleepNet cannot be initialized.")
+
+    elif args.model == "watchsleepnet":
+        final_model = WatchSleepNet(
+            num_features=model_params.get("num_features", 1),
+            num_channels=model_params.get("num_channels", 32),
+            kernel_size=model_params.get("kernel_size", 3),
+            hidden_dim=model_params.get("hidden_dim", 64),
+            num_heads=model_params.get("num_heads", 4),
+            num_layers=model_params.get("num_layers", 2),
+            tcn_layers=model_params.get("tcn_layers", 3),
+            use_tcn=model_params.get("use_tcn", True),
+            use_attention=model_params.get("use_attention", True),
+            num_classes=model_params.get("num_classes", 3),
         ).to(DEVICE)
 
     else:
-        raise ValueError("Unknown model type, can't re-instantiate.")
-
+        raise ValueError(f"Unknown model_name: {args.model}")
     # Load the best checkpoint
     final_model.load_state_dict(torch.load(final_model_path, map_location=DEVICE))
     final_model.eval()

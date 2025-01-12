@@ -157,7 +157,7 @@ class InsightSleepNetConfig:
     BATCH_SIZE = 4
     LEARNING_RATE = 1e-5
     NUM_EPOCHS = 100
-    PATIENCE = 5
+    PATIENCE = 20
     WEIGHT_DECAY = 1e-4
     LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
     NUM_CLASSES = 3
