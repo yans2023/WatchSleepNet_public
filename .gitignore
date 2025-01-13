@@ -5,3 +5,5 @@ __pycache__
 *.onnx
 *config.py
 *config_backup.py
+*.png
+*.csv
