@@ -293,6 +293,52 @@ class WatchSleepNet(nn.Module):
         return x
 
 
+def display_model_summary(model, x, lengths):
+    """
+    Registers forward hooks to print input/output shapes of each leaf module
+    in the model during a single forward pass.
+    """
+    # List to store all the hooks so we can remove them later
+    hooks = []
+
+    # Define a hook function that prints layer names, input shapes, and output shapes
+    def hook_fn(module, module_input, module_output):
+        class_name = module.__class__.__name__
+        
+        # module_input and module_output can be tuples (especially when multiple inputs/outputs)
+        # so we unwrap them for clarity.
+        if isinstance(module_input, tuple):
+            input_shapes = [inp.shape for inp in module_input if hasattr(inp, 'shape')]
+        else:
+            input_shapes = [module_input.shape] if hasattr(module_input, 'shape') else []
+            
+        if isinstance(module_output, tuple):
+            output_shapes = [out.shape for out in module_output if hasattr(out, 'shape')]
+        else:
+            output_shapes = [module_output.shape] if hasattr(module_output, 'shape') else []
+        
+        print(f"{class_name}:\n"
+              f"  Input shape(s):  {input_shapes}\n"
+              f"  Output shape(s): {output_shapes}\n")
+
+    # Recursively register hook_fn for all leaf modules
+    for name, module in model.named_modules():
+        # If a module has no children, it's a leaf (e.g., Conv1d, Linear, LSTM, etc.)
+        # You can remove the condition if you want to see hooks for every submodule,
+        # including sequential containers.
+        if len(list(module.children())) == 0:
+            hooks.append(module.register_forward_hook(hook_fn))
+
+    # Perform a forward pass to trigger the hooks
+    model.eval()  # Ensures we're in eval mode (no dropout scaling, etc.)
+    with torch.no_grad():
+        _ = model(x, lengths)
+
+    # Remove hooks after one forward pass to avoid printing repeatedly
+    for h in hooks:
+        h.remove()
+
+
 def test_model():
 
     # Parameters
@@ -329,14 +375,13 @@ def test_model():
     labels_padded = nn.utils.rnn.pad_sequence(
         labels_list, batch_first=True, padding_value=-1
     )
-    lengths = torch.tensor(lengths_list, dtype=torch.int64)  # Ensure lengths are int64
+    lengths = torch.tensor(lengths_list, dtype=torch.int64)
 
     # Move tensors to the appropriate device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ibis_padded = ibis_padded.to(device)
     labels_padded = labels_padded.to(device)
-    # Do NOT move lengths to the device here; keep it on CPU
-    # lengths = lengths.to(device)  # Commented out
+    # lengths stays on CPU for the packing operations
 
     # Define configurations to test
     configs = [
@@ -363,23 +408,21 @@ def test_model():
             use_attention=config["use_attention"],
         )
 
-        model = model.to(device)  # Move model to the appropriate device
+        model = model.to(device)
 
-        # Forward pass
+        # Display the model summary (shapes) once per configuration
+        print("\n--- MODEL LAYER SHAPES ---")
+        display_model_summary(model, ibis_padded, lengths)
+
+        # Actual forward pass (with gradient) to check for runtime issues
+        model.train()
         outputs = model(ibis_padded, lengths)
-
-        # outputs: (batch_size, max_num_segments, num_classes)
-
-        # Create mask based on lengths
         max_length = labels_padded.size(1)
         lengths_device = lengths.to(device)
-        mask = torch.arange(max_length, device=device).expand(
-            len(lengths), max_length
-        ) < lengths_device.unsqueeze(1)
-        # mask: (batch_size, max_num_segments), True for valid positions
+        mask = torch.arange(max_length, device=device).expand(len(lengths), max_length) < lengths_device.unsqueeze(1)
 
         # Flatten outputs and labels
-        outputs_flat = outputs.view(-1, num_classes)
+        outputs_flat = outputs.reshape(-1, num_classes)
         labels_flat = labels_padded.view(-1)
         mask_flat = mask.view(-1)
 
@@ -387,7 +430,7 @@ def test_model():
         outputs_masked = outputs_flat[mask_flat]
         labels_masked = labels_flat[mask_flat]
 
-        # Remove positions where labels are -1 (padding value)
+        # Remove positions where labels are -1 (padding)
         valid_indices = labels_masked != -1
         outputs_valid = outputs_masked[valid_indices]
         labels_valid = labels_masked[valid_indices]
@@ -395,10 +438,9 @@ def test_model():
         # Compute loss
         criterion = nn.CrossEntropyLoss()
         loss = criterion(outputs_valid, labels_valid)
-
         print(f"Loss: {loss.item()}")
 
-        # Optionally, perform a backward pass to check for errors
+        # Backward pass
         loss.backward()
         print("Backward pass successful.")
 
