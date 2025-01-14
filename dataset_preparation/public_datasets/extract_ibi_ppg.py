@@ -89,7 +89,7 @@ def extract_ibi_hard_code(filename):
     except Exception as e:
         logging.exception(f"Error processing file: {filename}")
 
-
+# Reminder to update directory
 def compute_all_ibis():  
     try:
         list_files = os.listdir("/mnt/nvme2/MESA_PPG/")
