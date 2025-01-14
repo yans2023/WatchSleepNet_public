@@ -218,15 +218,16 @@ print("Created folds for cross-validation finetuning.\n")
 
 loss_fn = model_config_class.LOSS_FN
 
+# make sure that model_config_dict has the correct ablation flags
+model_config_dict["use_tcn"] = args.use_tcn
+model_config_dict["use_attention"] = args.use_attention
+
 if args.model == "watchsleepnet":
     print("Fine-tuning WatchSleepNet with ablation flags:", 
           f"use_tcn={args.use_tcn}, use_attention={args.use_attention}")
     best_results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc = train_ablate_evaluate(
         model_name=args.model,
-        use_tcn=args.use_tcn,             # function param
-        use_attention=args.use_attention, # function param
         model_params=model_config_dict,   # dictionary of watchsleepnet hyperparams
-        num_classes=model_config_class.NUM_CLASSES,  # if your ablate fn requires
         dataloader_folds=dataloader_folds,
         saved_model_path=pretrain_save_path,   # load pretrained
         learning_rate=model_config_class.LEARNING_RATE,

@@ -134,23 +134,26 @@ dataloader_folds = create_dataloaders_kfolds(
 # Define loss function
 loss_fn = model_config.LOSS_FN
 
-# Perform cross-validation without transfer learning
+model_config.USE_ATTENTION = args.use_attention
+model_config.USE_TCN = args.use_tcn
+
 results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc = train_cross_validate(
     model_name=args.model,
-    use_tcn=args.use_tcn,
-    use_attention=args.use_attention,
-    model_params=model_config,
-    num_classes=3,  # Assuming 3 classes for sleep stages
+    model_params=model_config,  # Contains 'use_attention', 'use_tcn', 'num_classes', etc.
     dataloader_folds=dataloader_folds,
-    learning_rate=model_config.LEARNING_RATE,
-    weight_decay=model_config.WEIGHT_DECAY,
+    saved_model_path=None,  # Assuming you're training from scratch
+    learning_rate=model_config.get('LEARNING_RATE', 1e-3),
+    weight_decay=model_config.get('WEIGHT_DECAY', 1e-4),
     loss_fn=loss_fn,
-    num_epochs=model_config.NUM_EPOCHS,
-    patience=model_config.PATIENCE,
+    num_epochs=model_config.get('NUM_EPOCHS', 100),
+    patience=model_config.get('PATIENCE', 10),
     device=DEVICE,
     checkpoint_path=train_config["get_model_save_path"](
-        model_name=args.model, dataset_name=args.train_dataset, version="cv_no_transfer"
+        model_name=args.model,
+        dataset_name=args.train_dataset, 
+        version="cv_no_transfer_ablate_{}_tcn_{}_att".format(args.use_tcn, args.use_attention)
     ),
+    freeze_layers=False,  # Set to True if you need to freeze layers
 )
 
 # Output the results
