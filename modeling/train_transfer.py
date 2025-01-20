@@ -16,6 +16,7 @@ from engine import train, train_and_evaluate, validate_step
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
+
 # ------------------ Reproducibility ------------------
 seed = 0
 np.random.seed(seed)
@@ -24,33 +25,17 @@ torch.manual_seed(seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
+
 # ------------------ System Settings ------------------
 NUM_WORKERS = os.cpu_count() // 2
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# ------------------ Parse Arguments ------------------
+
+# ------------------ Settings ------------------
+TRAIN_DATASET = "shhs_mesa_ibi"
+TEST_DATASET = "dreamt_pibi"
+
 parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--train_dataset",
-    type=str,
-    default="shhs_mesa_ibi",
-    choices=["shhs_ibi", "mesa_eibi", "mesa_pibi", "shhs_mesa_ibi"],
-    help="Dataset for pretraining (source)."
-)
-parser.add_argument(
-    "--test_dataset",
-    type=str,
-    default="dreamt_pibi",
-    choices=["dreamt_pibi"],
-    help="Dataset for finetuning + evaluation (target)."
-)
-parser.add_argument(
-    "--task",
-    type=str,
-    default="sleep_staging",
-    choices=["sleep_staging", "sleep_wake"],
-    help="Classification task."
-)
 parser.add_argument(
     "--model",
     type=str,
@@ -65,16 +50,12 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-# Ensure the train/test datasets differ
-assert args.train_dataset != args.test_dataset, (
-    "Train and test datasets must be different for pretraining + finetuning."
-)
 
 # --------------- Retrieve Dataset Configs ---------------
-train_config = dataset_configurations.get(args.train_dataset, None)
-test_config = dataset_configurations.get(args.test_dataset, None)
+train_config = dataset_configurations.get(TRAIN_DATASET, None)
+test_config = dataset_configurations.get(TEST_DATASET, None)
 if train_config is None or test_config is None:
-    raise ValueError(f"Invalid dataset configuration for {args.train_dataset} or {args.test_dataset}.")
+    raise ValueError(f"Invalid dataset configuration for {TRAIN_DATASET} or {TEST_DATASET}.")
 
 # --------------- Pick the appropriate Model Config ---------------
 if args.model == "watchsleepnet":
@@ -100,13 +81,13 @@ model_config_dict = model_config_class.to_dict()
 # --------------- Build the save paths ---------------
 model_save_path = train_config["get_model_save_path"](
     model_name=args.model, 
-    dataset_name=args.train_dataset, 
+    dataset_name=TRAIN_DATASET, 
     version="vtrial"
 )
 
 finetune_save_path = test_config["get_model_save_path"](
     model_name=args.model, 
-    dataset_name=args.test_dataset, 
+    dataset_name=TEST_DATASET, 
     version="vtrial"
 )
 
@@ -130,10 +111,10 @@ else:
         val_ratio=0.2,
         batch_size=model_config_class.BATCH_SIZE,  # or use .to_dict() approach
         num_workers=NUM_WORKERS,
-        dataset=args.train_dataset,
+        dataset=TRAIN_DATASET,
         multiplier=train_config["multiplier"],
         downsampling_rate=train_config["downsampling_rate"],
-        task=args.task,
+        task="sleep_staging",
     )
 
     # Pretraining: we call the new `train(...)` signature
@@ -195,10 +176,10 @@ else:
         print("Warning: No checkpoint found after pretraining. Skipping final validation.")
 
 # --------------- Transfer Learning / Finetuning ---------------
-print(f"Perform transfer learning on: {args.test_dataset}")
+print(f"Perform transfer learning on: {TEST_DATASET}")
 dataloader_folds = create_dataloaders_kfolds(
     dir=test_config["directory"],
-    dataset=args.test_dataset,
+    dataset=TEST_DATASET,
     num_folds=5,
     val_ratio=0.2,
     batch_size=model_config_class.BATCH_SIZE,
