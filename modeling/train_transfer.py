@@ -5,30 +5,16 @@ import warnings
 import random
 import numpy as np
 
-warnings.filterwarnings("ignore", category=UserWarning)
-
 from data_setup import create_dataloaders, create_dataloaders_kfolds
-# These are your model definitions, but we won't directly instantiate them here;
-# we'll rely on the refactored `train()` to do so via `setup_model_and_optimizer`.
-from models.watchsleepnet import WatchSleepNet  
-from models.insightsleepnet import InsightSleepNet
-from models.sleepconvnet import SleepConvNet
-
-# Your config classes: 
-# each should ideally have a `.to_dict()` classmethod that returns a dictionary 
-# of hyperparameters needed by the chosen model's constructor.
 from config import (
     WatchSleepNetConfig,
     InsightSleepNetConfig,
     SleepConvNetConfig,
     dataset_configurations,
 )
-# The new refactored engine functions:
-from engine import (
-    train,
-    train_and_evaluate,
-    validate_step,  # for final validation
-)
+from engine import train, train_and_evaluate, validate_step
+
+warnings.filterwarnings("ignore", category=UserWarning)
 
 # ------------------ Reproducibility ------------------
 seed = 0
