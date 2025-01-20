@@ -3,7 +3,6 @@ __pycache__
 *.pt
 *.pth
 *.onnx
-*config.py
 *config_backup.py
 *.png
 *.csv

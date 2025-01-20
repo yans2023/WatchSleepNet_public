@@ -17,8 +17,6 @@ torch=2.5.1
 optuna=4.1.0
 neurokit2=0.2.10
 ```
-
-
 ## Usage
 
 ### Dataset Preperation
