@@ -15,7 +15,6 @@ import warnings
 SE means segmented extraction
 """
 
-
 def read_dreamt_data(
     file_path,
     select_chs=["BVP"],
