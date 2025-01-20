@@ -57,6 +57,7 @@ test_config = dataset_configurations.get(TEST_DATASET, None)
 if train_config is None or test_config is None:
     raise ValueError(f"Invalid dataset configuration for {TRAIN_DATASET} or {TEST_DATASET}.")
 
+
 # --------------- Pick the appropriate Model Config ---------------
 if args.model == "watchsleepnet":
     model_config_class = WatchSleepNetConfig
@@ -67,16 +68,8 @@ elif args.model == "sleepconvnet":
 else:
     raise ValueError(f"Unknown model: {args.model}")
 
-# Convert that config class to a dictionary of hyperparams
-# (assuming each config class has a .to_dict() method).
 model_config_dict = model_config_class.to_dict()  
-# For example, WatchSleepNetConfig.to_dict() might return:
-# {
-#    "num_features": ...,
-#    "num_channels": ...,
-#    ...
-#    "num_classes": 3
-# }
+
 
 # --------------- Build the save paths ---------------
 model_save_path = train_config["get_model_save_path"](
@@ -93,6 +86,7 @@ finetune_save_path = test_config["get_model_save_path"](
 
 print("Pretrain/Initial Model Save Path:", model_save_path)
 print("Finetune Model Save Path:", finetune_save_path)
+
 
 # --------------- Possibly load a pre-trained model ---------------
 if args.testing:
@@ -117,10 +111,8 @@ else:
         task="sleep_staging",
     )
 
-    # Pretraining: we call the new `train(...)` signature
     # Build the loss function
     loss_fn = model_config_class.LOSS_FN
-    # We call train(...) with the new signature, passing the model name + dictionary
     train_logs = train(
         model_name=args.model,
         model_params=model_config_dict,
@@ -131,7 +123,7 @@ else:
         patience=model_config_class.PATIENCE,
         device=DEVICE,
         model_save_path=model_save_path,
-        saved_model_path=None,  # No existing checkpoint
+        saved_model_path=None,
         learning_rate=model_config_class.LEARNING_RATE,
         weight_decay=model_config_class.WEIGHT_DECAY,
         freeze_layers=False,
@@ -141,12 +133,10 @@ else:
     # Optionally evaluate final validation metrics:
     from engine import validate_step
     if os.path.exists(model_save_path):
-        # The best model is stored at model_save_path, let's load it
+        # Load the best model is stored at model_save_path
         pretrained_state = torch.load(model_save_path, map_location=DEVICE)
         # We'll do a quick "validate_step" by creating a model again w/ same hyperparams
-        # But for simplicity, let's just re-run the engine's approach or do a short check.
-        # For demonstration, do a short check:
-        # (Alternatively, you can skip this part if you prefer.)
+        # But for simplicity, just re-run the engine's approach or do a short check.
         print("\n[Pretraining Completed] Loading best checkpoint for final validation step.")
         # We can call setup_model_and_optimizer again with same hyperparams, then load_state_dict.
         from engine import setup_model_and_optimizer
@@ -166,12 +156,12 @@ else:
         print("\n" + "="*80)
         print("Best Pretraining Validation Results")
         print("="*80)
-        print(f"Val Loss:    {val_loss:.3f}")
-        print(f"Val Acc:     {val_acc:.3f}")
-        print(f"Val F1:      {val_f1:.3f}")
-        print(f"Val Kappa:   {val_kappa:.3f}")
-        print(f"Val REM F1:  {val_rem_f1:.3f}")
-        print(f"Val AUROC:   {val_auroc:.3f}")
+        print(f"Val Loss: {val_loss:.3f}")
+        print(f"Val Acc: {val_acc:.3f}")
+        print(f"Val F1: {val_f1:.3f}")
+        print(f"Val Kappa: {val_kappa:.3f}")
+        print(f"Val REM F1: {val_rem_f1:.3f}")
+        print(f"Val AUROC: {val_auroc:.3f}")
     else:
         print("Warning: No checkpoint found after pretraining. Skipping final validation.")
 
@@ -193,7 +183,6 @@ print("Dataloader folds for finetuning created.\n")
 loss_fn = model_config_class.LOSS_FN
 
 # Now do cross-validation across the folds.
-# We call `train_and_evaluate(...)` which also uses the new signature.
 print("Starting cross-validation finetuning + evaluation...")
 best_results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc = train_and_evaluate(
     model_name=args.model,
@@ -215,4 +204,4 @@ print(f"Overall ACC: {overall_acc:.3f}")
 print(f"Overall F1:  {overall_f1:.3f}")
 print(f"Overall Kappa: {overall_kappa:.3f}")
 print(f"REM F1 Score: {rem_f1:.3f}")
-print(f"AUROC:       {auroc:.3f}")
+print(f"AUROC: {auroc:.3f}")
