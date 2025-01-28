@@ -66,23 +66,22 @@ train_config = dataset_configurations.get(args.train_dataset, None)
 
 # Model initialization based on user argument
 # for the ablation study, model definition for WatchSleepNet does not need feature_channels
-model_config = WatchSleepNetConfig
+model_config = WatchSleepNetConfig.to_dict()
 print("USE TCN: ", args.use_tcn)
 print("USE ATTENTION: ", args.use_attention)
 
 model = WatchSleepNet(
-    num_features=model_config.NUM_INPUT_CHANNELS,
-    # feature_channels=model_config.FEATURE_CHANNELS,
-    num_channels=model_config.NUM_CHANNELS,
-    kernel_size=model_config.KERNEL_SIZE,
-    hidden_dim=model_config.HIDDEN_DIM,
-    num_heads=model_config.NUM_HEADS,
-    num_layers=model_config.NUM_LAYERS,
-    tcn_layers=model_config.TCN_LAYERS,
-    num_classes=model_config.NUM_CLASSES,
-    use_tcn=args.use_tcn,
-    use_attention=args.use_attention,
-).to(DEVICE)
+        num_features=model_config['num_features'],
+        num_channels=model_config['num_channels'],
+        kernel_size=model_config['kernel_size'],
+        hidden_dim=model_config['hidden_dim'],
+        num_heads=model_config['num_heads'],
+        num_layers=model_config['num_layers'],
+        tcn_layers=model_config['tcn_layers'],
+        num_classes=model_config['num_classes'],
+        use_tcn=args.use_tcn,
+        use_attention=args.use_attention,
+    ).to(DEVICE)
 
 # Print the model architecture
 print("Model Architecture:")
@@ -125,17 +124,17 @@ dataloader_folds = create_dataloaders_kfolds(
     dataset=args.train_dataset,
     num_folds=5,
     val_ratio=0.2,
-    batch_size=model_config.BATCH_SIZE,
+    batch_size=model_config["BATCH_SIZE"],
     num_workers=NUM_WORKERS,
     multiplier=train_config["multiplier"],
     downsampling_rate=train_config["downsampling_rate"],
 )
 
 # Define loss function
-loss_fn = model_config.LOSS_FN
+loss_fn = model_config['LOSS_FN']
 
-model_config.USE_ATTENTION = args.use_attention
-model_config.USE_TCN = args.use_tcn
+model_config['USE_ATTENTION'] = args.use_attention
+model_config['USE_TCN'] = args.use_tcn
 
 results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc = train_cross_validate(
     model_name=args.model,
