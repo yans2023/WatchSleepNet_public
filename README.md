@@ -1,6 +1,6 @@
 # WatchSleepNet
 
-[![License](badge)](https://badgen.net/static/license/MIT/blue)
+![Static Badge](https://img.shields.io/badge/License%20-%20MIT%20-%20blue)
 
 ## Introduction
 
