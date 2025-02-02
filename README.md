@@ -17,8 +17,8 @@ git clone https://github.com/WillKeWang/WatchSleepNet_public.git
 conda create -n watchsleepnet python=3.10
 conda activate watchsleepnet
 ```
-**Note**
-Develpment was conducted in an conda environment, but you may use another package manager of your choice.
+> [!Note]
+> Develpment was conducted in an conda environment, but you may use another package manager of your choice.
 
 2. Install required dependencies
 ```
