@@ -6,17 +6,28 @@
 
 ## Installation 
 
-### Dependencies
-
-The following dependencies are required for this project and have been tested for the listed versions. Please ensure these dependencies are installed and compatible with your GPU setup:
+1. Clone the repository
 
 ```
-numpy=1.23.5
-scikit-learn=1.6.1
-torch=2.5.1
-optuna=4.1.0
-neurokit2=0.2.10
-psutil=6.1.1
+https://github.com/WillKeWang/WatchSleepNet_public.git
+```
+
+2. Setup virtual environment (recommended)
+```
+conda create -n watchsleepnet python=3.10
+conda activate watchsleepnet
+```
+[!NOTE]
+Develpment was conducted in an conda environment, but you may use another package manager of your choice.
+
+2. Install required dependencies
+```
+pip install -r requirements.txt
+```
+[!TIP]
+The versions in `requirements.txt` have been tested with our compute setup. Please update the versions if they are not compatible with your CUDA setup.
+
+
 ```
 ## Usage
 

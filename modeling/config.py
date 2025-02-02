@@ -108,7 +108,7 @@ class WatchSleepNetConfig:
     BATCH_SIZE = 16
     LEARNING_RATE = 5e-5
     NUM_EPOCHS = 200
-    PATIENCE = 20
+    PATIENCE = 50
     WEIGHT_DECAY = 1e-4
     LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
 
@@ -117,7 +117,7 @@ class WatchSleepNetConfig:
     NUM_CHANNELS = 256             # 'num_channels'
     KERNEL_SIZE = 5
     HIDDEN_DIM = 256
-    NUM_HEADS = 16
+    NUM_HEADS = 32
     TCN_LAYERS = 3
     NUM_LAYERS = 4
     NUM_CLASSES = 3
