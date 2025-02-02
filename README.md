@@ -9,7 +9,7 @@
 1. Clone the repository
 
 ```
-https://github.com/WillKeWang/WatchSleepNet_public.git
+git clone https://github.com/WillKeWang/WatchSleepNet_public.git
 ```
 
 2. Setup virtual environment (recommended)
@@ -17,27 +17,27 @@ https://github.com/WillKeWang/WatchSleepNet_public.git
 conda create -n watchsleepnet python=3.10
 conda activate watchsleepnet
 ```
-[!NOTE]
+**Note**
 Develpment was conducted in an conda environment, but you may use another package manager of your choice.
 
 2. Install required dependencies
 ```
 pip install -r requirements.txt
 ```
-[!TIP]
+**Tip**
 The versions in `requirements.txt` have been tested with our compute setup. Please update the versions if they are not compatible with your CUDA setup.
 
 
-```
 ## Usage
 
 ### Dataset Preperation
 Confirm that the root directory containing experiment datasets are structured as follows (and that the naming of each directory is consistent with the example):
 
-```
+
 ```
 Update the variable `DATASET_DIR` in `modeling/config.py` to your selected dataset root directory before proceeding to replicate the experiments.
 ```
+
 # Example
 DATASET_DIR = /mnt/nvme2/
 ```
