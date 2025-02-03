@@ -4,7 +4,7 @@
 
 ## Introduction
 
-WatchSleepNet is a novel deep learning model designed to improve sleep staging using wrist-worn wearables. The model integrates ResNet, Temporal Convolutional Networks (TCN), and LSTM with attention to enhance temporal feature extraction. A key innovation is the pretraining strategy, which first trains on large ECG-derived IBI datasets and then fine-tunes on smaller wrist-worn PPG-derived IBI datasets, significantly improving generalization. WatchSleepNet achieves state-of-the-art performance on the DREAMT dataset, surpassing existing wearable sleep staging models. This repository provides the full implementation and benchmarking tools to support reproducible research and future advancements in sleep monitoring.
+WatchSleepNet is a novel deep learning model designed to improve sleep staging using wrist-worn wearables. The model integrates ResNet, Temporal Convolutional Networks (TCN), and LSTM with attention to enhance temporal feature extraction. A key innovation is the pretraining strategy, which first trains on large ECG-derived Inter-Beat Interval (IBI) datasets and then fine-tunes on smaller wrist-worn PPG-derived IBI datasets, significantly improving generalization. WatchSleepNet achieves state-of-the-art performance on the DREAMT dataset, surpassing existing wearable sleep staging models. This repository provides the full implementation and benchmarking tools to support reproducible research and future advancements in sleep monitoring.
 
 ## Directory Structure
 
@@ -12,12 +12,7 @@ WatchSleepNet is a novel deep learning model designed to improve sleep staging u
 .
 ├── dataset_preparation
 │   ├── dreamt
-│   │   ├── dreamt_bvp_preprocessing.py
-│   │   ├── dreamt_extract_ibi_se.py
-│   │   ├── prepare_dreamt_ppg.py
-│   │   ├── prepare_dreamt_ppg_whole_sequence.py
-│   │   ├── read_raw_e4.py
-│   │   ├── read_raw_PSG.py
+│   │   ├── dreamt_extract_ibi_se.py # Run program to extract IBI from downloaded DREAMT dataset
 │   │   └── utils.py
 │   ├── __init__.py
 │   ├── public_datasets
@@ -125,6 +120,10 @@ pip install -r requirements.txt
 ## Usage
 
 ### Dataset Preperation
+
+1. Download the open source datasets ([DREAMT](https://physionet.org/content/dreamt/1.0.0/), [MESA](https://sleepdata.org/datasets/mesa), [SHHS](https://sleepdata.org/datasets/shhs)) to your designated directory.
+
+2. Extract IBI from DREAMT dataset
 
 1. Confirm that the dataset root directory contains the following subdirectories with the same name:
 
