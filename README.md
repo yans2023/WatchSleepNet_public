@@ -179,6 +179,12 @@ You can perform ablation experiments on WatchSleepNet using `modeling/watchsleep
 ```
 python modeling/watchsleepnet_cv_ablation.py
 ```
+or 
+```
+python modeling/watchsleepnet_transfer_ablation.py
+```
+> [!TIP]
+> `watchsleepnet_cv_ablation.py` tests performance on using only DREAMT while `watchsleepnet_transfer_ablation.py` performs transfer learning on SHHS+MESA and then tests on DREAMT.
 
 Utilize the argument flags to run either/both the TCN and Attention components
 ```
@@ -186,3 +192,8 @@ python modeling/watchsleepnet_cv_ablation.py --use_tcn --use_attention
 ```
 
 ### Hyperparameter Tuning
+
+You can perform hyperparameter tuning for WatchSleepNet, InsightSleepNet, and SleepConvNet. For example, to tune WatchSleepNet run
+```
+python modeling/watchsleepnet_hpt.py
+```
