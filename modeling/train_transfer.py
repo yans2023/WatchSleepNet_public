@@ -5,30 +5,17 @@ import warnings
 import random
 import numpy as np
 
-warnings.filterwarnings("ignore", category=UserWarning)
-
 from data_setup import create_dataloaders, create_dataloaders_kfolds
-# These are your model definitions, but we won't directly instantiate them here;
-# we'll rely on the refactored `train()` to do so via `setup_model_and_optimizer`.
-from models.watchsleepnet import WatchSleepNet  
-from models.insightsleepnet import InsightSleepNet
-from models.sleepconvnet import SleepConvNet
-
-# Your config classes: 
-# each should ideally have a `.to_dict()` classmethod that returns a dictionary 
-# of hyperparameters needed by the chosen model's constructor.
 from config import (
     WatchSleepNetConfig,
     InsightSleepNetConfig,
     SleepConvNetConfig,
     dataset_configurations,
 )
-# The new refactored engine functions:
-from engine import (
-    train,
-    train_and_evaluate,
-    validate_step,  # for final validation
-)
+from engine import train, train_and_evaluate, validate_step
+
+warnings.filterwarnings("ignore", category=UserWarning)
+
 
 # ------------------ Reproducibility ------------------
 seed = 0
@@ -38,33 +25,17 @@ torch.manual_seed(seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
+
 # ------------------ System Settings ------------------
 NUM_WORKERS = os.cpu_count() // 2
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# ------------------ Parse Arguments ------------------
+
+# ------------------ Settings ------------------
+TRAIN_DATASET = "shhs_mesa_ibi"
+TEST_DATASET = "dreamt_pibi"
+
 parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--train_dataset",
-    type=str,
-    default="shhs_mesa_ibi",
-    choices=["shhs_ibi", "mesa_eibi", "mesa_pibi", "shhs_mesa_ibi"],
-    help="Dataset for pretraining (source)."
-)
-parser.add_argument(
-    "--test_dataset",
-    type=str,
-    default="dreamt_pibi",
-    choices=["dreamt_pibi"],
-    help="Dataset for finetuning + evaluation (target)."
-)
-parser.add_argument(
-    "--task",
-    type=str,
-    default="sleep_staging",
-    choices=["sleep_staging", "sleep_wake"],
-    help="Classification task."
-)
 parser.add_argument(
     "--model",
     type=str,
@@ -79,16 +50,13 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-# Ensure the train/test datasets differ
-assert args.train_dataset != args.test_dataset, (
-    "Train and test datasets must be different for pretraining + finetuning."
-)
 
 # --------------- Retrieve Dataset Configs ---------------
-train_config = dataset_configurations.get(args.train_dataset, None)
-test_config = dataset_configurations.get(args.test_dataset, None)
+train_config = dataset_configurations.get(TRAIN_DATASET, None)
+test_config = dataset_configurations.get(TEST_DATASET, None)
 if train_config is None or test_config is None:
-    raise ValueError(f"Invalid dataset configuration for {args.train_dataset} or {args.test_dataset}.")
+    raise ValueError(f"Invalid dataset configuration for {TRAIN_DATASET} or {TEST_DATASET}.")
+
 
 # --------------- Pick the appropriate Model Config ---------------
 if args.model == "watchsleepnet":
@@ -100,32 +68,25 @@ elif args.model == "sleepconvnet":
 else:
     raise ValueError(f"Unknown model: {args.model}")
 
-# Convert that config class to a dictionary of hyperparams
-# (assuming each config class has a .to_dict() method).
 model_config_dict = model_config_class.to_dict()  
-# For example, WatchSleepNetConfig.to_dict() might return:
-# {
-#    "num_features": ...,
-#    "num_channels": ...,
-#    ...
-#    "num_classes": 3
-# }
+
 
 # --------------- Build the save paths ---------------
 model_save_path = train_config["get_model_save_path"](
     model_name=args.model, 
-    dataset_name=args.train_dataset, 
+    dataset_name=TRAIN_DATASET, 
     version="vtrial"
 )
 
 finetune_save_path = test_config["get_model_save_path"](
     model_name=args.model, 
-    dataset_name=args.test_dataset, 
+    dataset_name=TEST_DATASET, 
     version="vtrial"
 )
 
 print("Pretrain/Initial Model Save Path:", model_save_path)
 print("Finetune Model Save Path:", finetune_save_path)
+
 
 # --------------- Possibly load a pre-trained model ---------------
 if args.testing:
@@ -144,16 +105,14 @@ else:
         val_ratio=0.2,
         batch_size=model_config_class.BATCH_SIZE,  # or use .to_dict() approach
         num_workers=NUM_WORKERS,
-        dataset=args.train_dataset,
+        dataset=TRAIN_DATASET,
         multiplier=train_config["multiplier"],
         downsampling_rate=train_config["downsampling_rate"],
-        task=args.task,
+        task="sleep_staging",
     )
 
-    # Pretraining: we call the new `train(...)` signature
     # Build the loss function
     loss_fn = model_config_class.LOSS_FN
-    # We call train(...) with the new signature, passing the model name + dictionary
     train_logs = train(
         model_name=args.model,
         model_params=model_config_dict,
@@ -164,7 +123,7 @@ else:
         patience=model_config_class.PATIENCE,
         device=DEVICE,
         model_save_path=model_save_path,
-        saved_model_path=None,  # No existing checkpoint
+        saved_model_path=None,
         learning_rate=model_config_class.LEARNING_RATE,
         weight_decay=model_config_class.WEIGHT_DECAY,
         freeze_layers=False,
@@ -174,12 +133,10 @@ else:
     # Optionally evaluate final validation metrics:
     from engine import validate_step
     if os.path.exists(model_save_path):
-        # The best model is stored at model_save_path, let's load it
+        # Load the best model is stored at model_save_path
         pretrained_state = torch.load(model_save_path, map_location=DEVICE)
         # We'll do a quick "validate_step" by creating a model again w/ same hyperparams
-        # But for simplicity, let's just re-run the engine's approach or do a short check.
-        # For demonstration, do a short check:
-        # (Alternatively, you can skip this part if you prefer.)
+        # But for simplicity, just re-run the engine's approach or do a short check.
         print("\n[Pretraining Completed] Loading best checkpoint for final validation step.")
         # We can call setup_model_and_optimizer again with same hyperparams, then load_state_dict.
         from engine import setup_model_and_optimizer
@@ -199,20 +156,20 @@ else:
         print("\n" + "="*80)
         print("Best Pretraining Validation Results")
         print("="*80)
-        print(f"Val Loss:    {val_loss:.3f}")
-        print(f"Val Acc:     {val_acc:.3f}")
-        print(f"Val F1:      {val_f1:.3f}")
-        print(f"Val Kappa:   {val_kappa:.3f}")
-        print(f"Val REM F1:  {val_rem_f1:.3f}")
-        print(f"Val AUROC:   {val_auroc:.3f}")
+        print(f"Val Loss: {val_loss:.3f}")
+        print(f"Val Acc: {val_acc:.3f}")
+        print(f"Val F1: {val_f1:.3f}")
+        print(f"Val Kappa: {val_kappa:.3f}")
+        print(f"Val REM F1: {val_rem_f1:.3f}")
+        print(f"Val AUROC: {val_auroc:.3f}")
     else:
         print("Warning: No checkpoint found after pretraining. Skipping final validation.")
 
 # --------------- Transfer Learning / Finetuning ---------------
-print(f"Perform transfer learning on: {args.test_dataset}")
+print(f"Perform transfer learning on: {TEST_DATASET}")
 dataloader_folds = create_dataloaders_kfolds(
     dir=test_config["directory"],
-    dataset=args.test_dataset,
+    dataset=TEST_DATASET,
     num_folds=5,
     val_ratio=0.2,
     batch_size=model_config_class.BATCH_SIZE,
@@ -226,7 +183,6 @@ print("Dataloader folds for finetuning created.\n")
 loss_fn = model_config_class.LOSS_FN
 
 # Now do cross-validation across the folds.
-# We call `train_and_evaluate(...)` which also uses the new signature.
 print("Starting cross-validation finetuning + evaluation...")
 best_results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc = train_and_evaluate(
     model_name=args.model,
@@ -248,4 +204,4 @@ print(f"Overall ACC: {overall_acc:.3f}")
 print(f"Overall F1:  {overall_f1:.3f}")
 print(f"Overall Kappa: {overall_kappa:.3f}")
 print(f"REM F1 Score: {rem_f1:.3f}")
-print(f"AUROC:       {auroc:.3f}")
+print(f"AUROC: {auroc:.3f}")

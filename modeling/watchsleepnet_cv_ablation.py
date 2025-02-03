@@ -1,7 +1,6 @@
 import os
 import torch
 import argparse
-import warnings
 from data_setup import create_dataloaders, create_dataloaders_kfolds
 from config import WatchSleepNetConfig, dataset_configurations
 from engine import train_cross_validate

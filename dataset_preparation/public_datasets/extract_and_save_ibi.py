@@ -6,9 +6,7 @@ import logging
 from multiprocessing import Pool, cpu_count
 from scipy.signal import find_peaks
 import pandas as pd
-import unittest
-import tempfile
-import shutil
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -225,16 +223,16 @@ if __name__ == "__main__":
     shhs_fs_col = "fs"
     shhs_method = "biosppy"  # ECG from SHHS
 
-    # process_dataset(
-    #     dataset_name="SHHS",
-    #     in_dir=shhs_input_dir,
-    #     out_dir=output_dir,
-    #     info_path=shhs_info_path,
-    #     id_col=shhs_id_col,
-    #     ahi_col=shhs_ahi_col,
-    #     fs_col=shhs_fs_col,
-    #     method=shhs_method,
-    # )
+    process_dataset(
+        dataset_name="SHHS",
+        in_dir=shhs_input_dir,
+        out_dir=output_dir,
+        info_path=shhs_info_path,
+        id_col=shhs_id_col,
+        ahi_col=shhs_ahi_col,
+        fs_col=shhs_fs_col,
+        method=shhs_method,
+    )
 
     mesa_input_dir = "/mnt/linux_partition/MESA_PPG/"
     mesa_info_path = "/mnt/linux_partition/mesa/datasets/mesa-sleep-harmonized-dataset-0.7.0.csv"

@@ -7,8 +7,6 @@ from sklearn.model_selection import KFold
 from pathlib import Path
 import json
 seed = 0
-# TODO: Randomly Select Subsamples
-# TODO: Transform Function
 
 class SSDataset(Dataset):
     def __init__(self, dir, dataset, file_list = None, multiplier=1.0, downsample_rate=1, task="sleep_staging", return_file_name=False):
