@@ -128,7 +128,7 @@ pip install -r requirements.txt
 python dataset_preperation/dreamt/dreamt_extract_ibi_se.py
 ```
 > [!TIP]
-> Update the `root_path` variable in the file to where you stored the DREAMT dataset.
+> Update the `root_path` variable in the file to where you stored the DREAMT dataset. The directory should be named `DREAMT_PIBI_SE`.
 
 3. Extract PPG from MESA and ECG from SHHS
 ```
@@ -143,23 +143,18 @@ python dataset_preperation/public_dataset/shhs_extract_ecg.py
 python dataset_preperation/public_dataset/extract_and_save_ibi.py
 ```
 > [!TIP]
-> Update `output_dir` to where you want to store the combined IBI. Update `shhs_input_dir` and `mesa_input_dir` to where you stored the extracted PPG and ECG datasets. 
+> Update `shhs_input_dir` and `mesa_input_dir` to where you stored the extracted PPG and ECG datasets. Update `output_dir` to where you want to store the combined IBI. The directory should be named `SHHS_MESA_IBI`.
 
-1. Confirm that the dataset root directory contains the following subdirectories with the same name:
+5. Confirm that the dataset root directory contains the following subdirectories with the same names:
 
 ```bash
 .
-├── DREAMT_EIBI
-├── DREAMT_PIBI
-├── MESA_EIBI
+├── DREAMT_PIBI_SE
 ├── MESA_PIBI
-├── SHHS_IBI
 └── SHHS_MESA_IBI
 ```
 
-2. Update the variable `DATASET_DIR` in `modeling/config.py` to your selected dataset root directory before proceeding to replicate the experiments.
-
-1. Set the `DATASET_DIR` variable in `modeling/config.py` to your dataset root directory:
+6. Set the `DATASET_DIR` variable in `modeling/config.py` to your dataset root directory:
 ```
 DATASET_DIR = # Enter your dataset root directory
 ```

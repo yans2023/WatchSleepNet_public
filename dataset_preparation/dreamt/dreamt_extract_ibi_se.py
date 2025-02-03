@@ -170,7 +170,7 @@ def extract_ibi_hard_code(root_path, filename):
     # if recomputing, then we have to delete the code checking for file already existing
     try:
         in_dir = root_path / "data"
-        out_dir = root_path / "DREAMT_PIBI_TEST"
+        out_dir = root_path / "DREAMT_PIBI_SE"
 
         if not os.path.exists(os.path.join(out_dir, filename)):
             sid = filename.split("_")[0]
