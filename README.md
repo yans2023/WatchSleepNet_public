@@ -124,6 +124,26 @@ pip install -r requirements.txt
 1. Download the open source datasets ([DREAMT](https://physionet.org/content/dreamt/1.0.0/), [MESA](https://sleepdata.org/datasets/mesa), [SHHS](https://sleepdata.org/datasets/shhs)) to your designated directory.
 
 2. Extract IBI from DREAMT dataset
+```
+python dataset_preperation/dreamt/dreamt_extract_ibi_se.py
+```
+> [!TIP]
+> Update the `root_path` variable in the file to where you stored the DREAMT dataset.
+
+3. Extract PPG from MESA and ECG from SHHS
+```
+python dataset_preperation/public_dataset/mesa_extract_ppg.py
+python dataset_preperation/public_dataset/shhs_extract_ecg.py
+```
+> [!TIP]
+> Update the `out_dir` path in the files to where you stored the MESA and SHHS datasets.
+
+4. Extract IBI from MESA and SHHS
+```
+python dataset_preperation/public_dataset/extract_and_save_ibi.py
+```
+> [!TIP]
+> Update `output_dir` to where you want to store the combined IBI. Update `shhs_input_dir` and `mesa_input_dir` to where you stored the extracted PPG and ECG datasets. 
 
 1. Confirm that the dataset root directory contains the following subdirectories with the same name:
 

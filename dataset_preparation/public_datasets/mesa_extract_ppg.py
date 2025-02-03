@@ -2,6 +2,8 @@ import os
 from tqdm import tqdm
 from utils import read_edf_data, save_to_npz
 
+out_dir = "/mnt/linux_partition/MESA_PPG/"
+
 def process_mesa(out_dir):
     mesa_dir = "/mnt/linux_partition/mesa/polysomnography/edfs/"
     files = [f for f in os.listdir(mesa_dir) if f.endswith(".edf")]
@@ -16,4 +18,4 @@ def process_mesa(out_dir):
             print(f"Error processing {sid}: {e}")
 
 if __name__ == "__main__":
-    process_mesa("/mnt/linux_partition/MESA_PPG/")
+    process_mesa(out_dir)

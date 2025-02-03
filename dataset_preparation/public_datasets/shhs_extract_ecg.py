@@ -2,6 +2,8 @@ import os
 from tqdm import tqdm
 from utils import read_edf_data, save_to_npz
 
+out_dir = "/mnt/linux_partition/SHHS_ECG/"
+
 def process_shhs(out_dir):
     shhs_dirs = [
         "/mnt/linux_partition/shhs/polysomnography/edfs/shhs1/",
@@ -21,4 +23,4 @@ def process_shhs(out_dir):
                 print(f"Error processing {sid}: {e}")
 
 if __name__ == "__main__":
-    process_shhs("/mnt/linux_partition/SHHS_ECG/")
+    process_shhs(out_dir)
