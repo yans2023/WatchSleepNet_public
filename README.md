@@ -2,6 +2,8 @@
 
 ![Static Badge](https://img.shields.io/badge/License%20-%20MIT%20-%20blue)
 
+![WatchSleepNet](./media/WatchSleepNet%20Logo.png)
+
 ## Introduction
 
 WatchSleepNet is a novel deep learning model designed to improve sleep staging using wrist-worn wearables. The model integrates ResNet, Temporal Convolutional Networks (TCN), and LSTM with attention to enhance temporal feature extraction. A key innovation is the pretraining strategy, which first trains on large ECG-derived Inter-Beat Interval (IBI) datasets and then fine-tunes on smaller wrist-worn PPG-derived IBI datasets, significantly improving generalization. WatchSleepNet achieves state-of-the-art performance on the DREAMT dataset, surpassing existing wearable sleep staging models. This repository provides the full implementation and benchmarking tools to support reproducible research and future advancements in sleep monitoring.
