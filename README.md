@@ -2,7 +2,7 @@
 
 ![Static Badge](https://img.shields.io/badge/License%20-%20MIT%20-%20blue)
 
-![WatchSleepNet](./media/WatchSleepNet%20Logo.png)
+<img src="./media/WatchSleepNet Logo.png" height="100"/>
 
 ## Introduction
 
