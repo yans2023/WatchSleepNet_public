@@ -112,7 +112,7 @@ for name, param in model.named_parameters():
 
 # Generate dynamic save path for model and analysis
 model_save_path = dataset_configurations[args.train_dataset]["get_model_save_path"](
-    model_name=args.model, dataset_name=args.train_dataset, version="vtrial"
+    model_name=args.model, dataset_name=args.train_dataset, version="cv_ablate_{}_tcn_{}_att".format(args.use_tcn, args.use_attention)
 )
 
 print(model_save_path)
@@ -133,8 +133,10 @@ dataloader_folds = create_dataloaders_kfolds(
 # Define loss function
 loss_fn = model_config['LOSS_FN']
 
-model_config['USE_ATTENTION'] = args.use_attention
-model_config['USE_TCN'] = args.use_tcn
+model_config['use_attention'] = args.use_attention
+model_config['use_tcn'] = args.use_tcn
+print(args.use_attention, args.use_tcn)
+print(model_config)
 
 results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc = train_cross_validate(
     model_name=args.model,

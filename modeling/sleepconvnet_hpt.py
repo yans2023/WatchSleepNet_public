@@ -138,6 +138,7 @@ def objective(trial, config: dict, dataloader_folds: list, device: torch.device,
         [
             [(1, 32, 3, 1), (32, 64, 3, 1), (64, 128, 3, 1)],  # final_in_channels=128
             [(1, 32, 3, 1), (32, 48, 3, 1), (48, 64, 3, 1)],  # final_in_channels=64
+            [(1, 8, 3, 1), (8, 16, 3, 1), (16, 32, 3, 1)],  # final_in_channels=32
         ],
     )
 
@@ -146,9 +147,10 @@ def objective(trial, config: dict, dataloader_folds: list, device: torch.device,
     # Choose dilation_layers_configs deterministically based on final_in_channels
     if final_in_channels == 128:
         dilation_layers_configs = [(128, 128, 7, d) for d in [2, 4, 8, 16, 32]]
-    else:
+    elif final_in_channels == 64:
         dilation_layers_configs = [(64, 64, 7, d) for d in [2, 4, 8]]
-
+    elif final_in_channels == 32:
+        dilation_layers_configs = [(32, 32, 7, d) for d in [2, 4]]
     # Optionally, you can tune other hyperparameters here
     # For example, learning_rate, weight_decay, etc.
     learning_rate = trial.suggest_loguniform("learning_rate", 1e-5, 1e-2)
