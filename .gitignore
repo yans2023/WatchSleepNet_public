@@ -5,3 +5,7 @@ __pycache__
 *.onnx
 *config_backup.py
 *.csv
+*.png
+*.ipynb
+*.ipynb_checkpoints
+*notebooks*
