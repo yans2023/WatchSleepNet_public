@@ -164,12 +164,13 @@ def calculate_ibi_segment(ppg_signal, fs, use_package="neurokit"):
     return ibi, empty_segment_count
 
 
-def extract_ibi_hard_code(filename):
-    info_df = pd.read_csv("/mnt/linux_partition/DREAMT/participant_info.csv")
+def extract_ibi_hard_code(root_path, filename):
+    info_path = root_path / "participant_info.csv"
+    info_df = pd.read_csv(info_path)
     # if recomputing, then we have to delete the code checking for file already existing
     try:
-        in_dir = Path("/mnt/linux_partition/DREAMT/data/")
-        out_dir = "/mnt/linux_partition/DREAMT_PIBI_SE/"
+        in_dir = root_path / "data"
+        out_dir = root_path / "DREAMT_PIBI_SE"
 
         if not os.path.exists(os.path.join(out_dir, filename)):
             sid = filename.split("_")[0]
@@ -197,6 +198,7 @@ def extract_ibi_hard_code(filename):
         logging.exception(f"Error processing file: {filename}")
 
 
-list_files = os.listdir("/mnt/linux_partition/DREAMT/data/")
-for file in tqdm(list_files):
-    extract_ibi_hard_code(file)
+root_path = "/mnt/linux_partition/DREAMT"
+list_files = root_path / "data"
+for file in tqdm(list_files.iterdir()):
+    extract_ibi_hard_code(root_path, file)

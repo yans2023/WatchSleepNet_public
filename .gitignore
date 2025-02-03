@@ -4,5 +4,4 @@ __pycache__
 *.pth
 *.onnx
 *config_backup.py
-*.png
 *.csv

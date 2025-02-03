@@ -2,9 +2,11 @@
 
 ![Static Badge](https://img.shields.io/badge/License%20-%20MIT%20-%20blue)
 
+<img src="./media/WatchSleepNet Logo.png" height="100"/>
+
 ## Introduction
 
-WatchSleepNet is a novel deep learning model designed to improve sleep staging using wrist-worn wearables. The model integrates ResNet, Temporal Convolutional Networks (TCN), and LSTM with attention to enhance temporal feature extraction. A key innovation is the pretraining strategy, which first trains on large ECG-derived IBI datasets and then fine-tunes on smaller wrist-worn PPG-derived IBI datasets, significantly improving generalization. WatchSleepNet achieves state-of-the-art performance on the DREAMT dataset, surpassing existing wearable sleep staging models. This repository provides the full implementation and benchmarking tools to support reproducible research and future advancements in sleep monitoring.
+WatchSleepNet is a novel deep learning model designed to improve sleep staging using wrist-worn wearables. The model integrates ResNet, Temporal Convolutional Networks (TCN), and LSTM with attention to enhance temporal feature extraction. A key innovation is the pretraining strategy, which first trains on large ECG-derived Inter-Beat Interval (IBI) datasets and then fine-tunes on smaller wrist-worn PPG-derived IBI datasets, significantly improving generalization. WatchSleepNet achieves state-of-the-art performance on the DREAMT dataset, surpassing existing wearable sleep staging models. This repository provides the full implementation and benchmarking tools to support reproducible research and future advancements in sleep monitoring.
 
 ## Directory Structure
 
@@ -12,91 +14,37 @@ WatchSleepNet is a novel deep learning model designed to improve sleep staging u
 .
 ├── dataset_preparation
 │   ├── dreamt
-│   │   ├── dreamt_bvp_preprocessing.py
-│   │   ├── dreamt_extract_ibi_se.py
-│   │   ├── prepare_dreamt_ppg.py
-│   │   ├── prepare_dreamt_ppg_whole_sequence.py
-│   │   ├── read_raw_e4.py
-│   │   ├── read_raw_PSG.py
+│   │   ├── dreamt_extract_ibi_se.py # Run program to extract IBI from downloaded DREAMT dataset
 │   │   └── utils.py
-│   ├── __init__.py
 │   ├── public_datasets
-│   │   ├── extract_ibi_ppg.py
-│   │   ├── extract_ibi.py
-│   │   ├── __init__.py
-│   │   ├── mesa_add_ahi.py
-│   │   └── shhs_add_ahi.py
-│   └── visualize_raw_signal.ipynb
-├── __init__.py
+│   │   ├── mesa_extract_ppg.py # Run program to extract PPG from MESA dataset
+│   │   ├── shhs_extract_ecg.py # Run program to extract ECG from SHHS dataset
+│   │   ├── extract_and_save_ibi.py # Run program to save IBI extracted from both MESA and SHHS datasets.
+│   │   └── utils.py
+│   └── visualize_raw_signal.ipynb # (Optional) Example code to visualize raw signals
 ├── modeling
-│   ├── checkpoints
-│   │   ├── insightsleepnet
-│   │   │   ├── dreamt_pibi
-│   │   │   └── shhs_mesa_ibi
-│   │   │       └── best_saved_model_vtrial.pt
-│   │   └── watchsleepnet
-│   │       ├── dreamt_pibi
-│   │       │   ├── best_saved_model_vtrial_fold1.pt
-│   │       │   ├── best_saved_model_vtrial_fold2.pt
-│   │       │   ├── best_saved_model_vtrial_fold3.pt
-│   │       │   ├── best_saved_model_vtrial_fold4.pt
-│   │       │   └── best_saved_model_vtrial_fold5.pt
-│   │       └── shhs_mesa_ibi
-│   │           └── best_saved_model_vtrial.pt
-│   ├── cleaned_files_apnea_severity.json
-│   ├── config.py
+│   ├── config.py # Configure parameters related to dataset and models
 │   ├── data_setup.py
 │   ├── engine.py
-│   ├── __init__.py
-│   ├── insightsleepnet_hpt.py
-│   ├── models
-│   │   ├── checkpoints
-│   │   │   └── watchsleepnet
-│   │   │       ├── dreamt_pibi
-│   │   │       ├── shhs_ibi
-│   │   │       └── shhs_mesa_ibi
-│   │   │           └── best_saved_model_vtrial.pt
-│   │   ├── __init__.py
+│   ├── insightsleepnet_hpt.py # Run program to perform hyperparameter tuning for InsightSleepNet
+│   ├── sleepconvnet_hpt.py # Run program to perform hyperparameter tuning for SleepConvNet
+│   ├── watchsleepnet_hpt.py # Run program to perform hyperparameter tuning for WatchSleepNet
+│   ├── models # Model architectures
 │   │   ├── insightsleepnet.py
-│   │   ├── __pycache__
-│   │   │   ├── __init__.cpython-310.pyc
-│   │   │   ├── insightsleepnet.cpython-310.pyc
-│   │   │   ├── sleepconvnet.cpython-310.pyc
-│   │   │   └── watchsleepnet.cpython-310.pyc
 │   │   ├── sleepconvnet.py
 │   │   └── watchsleepnet.py
-│   ├── notebooks
-│   │   ├── epoch_proportion.ipynb
-│   │   ├── figures
-│   │   │   ├── confusion_matrix_apnea_category_finetune_all_layers.png
-│   │   │   ├── confusion_matrix_apnea_category_finetune_tcn+lstm.png
-│   │   │   ├── confusion_matrix_apnea_category.png
-│   │   │   ├── confusion_matrix_overall_finetune_all_layers.png
-│   │   │   └── sampling_experiment_performance_difference.png
-│   │   ├── __init__.py
-│   │   ├── plot_ablation_performances.ipynb
-│   │   ├── plot_cm.ipynb
-│   │   ├── population_characteristics.ipynb
-│   │   ├── sampling_experiments_plotting.ipynb
-│   │   └── visualize_prediction.ipynb
-│   ├── optuna_studies
-│   │   └── insightsleepnet_hpo_results.csv
-│   ├── print_models.py
-│   ├── __pycache__
-│   │   ├── config.cpython-310.pyc
-│   │   ├── data_setup.cpython-310.pyc
-│   │   └── engine.cpython-310.pyc
-│   ├── sleepconvnet_hpt.py
-│   ├── torch_installation_check.py
+│   ├── notebooks # (Optional) Example code to visualize experiment results
+│   ├── optuna_studies # Hyperparameter tuning results
 │   ├── train_cv.py
-│   ├── train_transfer.py
+│   ├── train_transfer.py # Run program to perform transfer learning experiments
 │   ├── utils.py
-│   ├── watchsleepnet_cv_ablation.py
-│   ├── watchsleepnet_hpt.py
-│   └── watchsleepnet_transfer_ablation.py
+│   ├── watchsleepnet_cv_ablation.py # Run program to perform ablation experiments (DREAMT) on WatchSleepNet
+│   └── watchsleepnet_transfer_ablation.py # Run program to perform ablation experiments (Transfer Learning) on WatchSleepNet
 ├── README.md
 └── requirements.txt
 ```
+> [!TIP]
+> The files without description contain utility functions that are used in the main programs.
 
 ## Installation 
 
@@ -126,40 +74,79 @@ pip install -r requirements.txt
 
 ### Dataset Preperation
 
-1. Confirm that the dataset root directory contains the following subdirectories with the same name:
+1. Download the open source datasets ([DREAMT](https://physionet.org/content/dreamt/1.0.0/), [MESA](https://sleepdata.org/datasets/mesa), [SHHS](https://sleepdata.org/datasets/shhs)) to your designated directory.
+
+2. Extract IBI from DREAMT dataset
+```
+python dataset_preperation/dreamt/dreamt_extract_ibi_se.py
+```
+> [!TIP]
+> Update the `root_path` variable in the file to where you stored the DREAMT dataset. The directory should be named `DREAMT_PIBI_SE`.
+
+3. Extract PPG from MESA and ECG from SHHS
+```
+python dataset_preperation/public_dataset/mesa_extract_ppg.py
+python dataset_preperation/public_dataset/shhs_extract_ecg.py
+```
+> [!TIP]
+> Update the `out_dir` path in the files to where you stored the MESA and SHHS datasets.
+
+4. Extract IBI from MESA and SHHS
+```
+python dataset_preperation/public_dataset/extract_and_save_ibi.py
+```
+> [!TIP]
+> Update `shhs_input_dir` and `mesa_input_dir` to where you stored the extracted PPG and ECG datasets. Update `output_dir` to where you want to store the combined IBI. The directory should be named `SHHS_MESA_IBI`.
+
+5. Confirm that the dataset root directory contains the following subdirectories with the same names:
 
 ```bash
 .
-├── DREAMT_EIBI
-├── DREAMT_PIBI
-├── MESA_EIBI
+├── DREAMT_PIBI_SE
 ├── MESA_PIBI
-├── SHHS_IBI
 └── SHHS_MESA_IBI
 ```
 
-2. Update the variable `DATASET_DIR` in `modeling/config.py` to your selected dataset root directory before proceeding to replicate the experiments.
-
-1. Set the `DATASET_DIR` variable in `modeling/config.py` to your dataset root directory:
+6. Set the `DATASET_DIR` variable in `modeling/config.py` to your dataset root directory:
 ```
 DATASET_DIR = # Enter your dataset root directory
 ```
 
 ### Experiment 1: Transfer Learning
 
-You can perform transfer learning experiments (pre-train on IBI from SHHS+MESA and test on DREAMT IBI) using the `modeling/train_transfer.py`. To run WatchSleepNet, simply run:
+You can perform transfer learning experiments (pre-train on IBI from SHHS+MESA and test on DREAMT IBI) using the `modeling/train_transfer.py`. Run the experiment with WatchSleepNet:
 ```
-python train_transfer.py
+python modeling/train_transfer.py
 ```
 To perform the experiment with other benchmark models (i.e. InsightSleepNet, SleepConvNet), indicate selected model using the `--model` parser argument:
 ```
-python train_transfer.py --model=insightsleepnet
+python modeling/train_transfer.py --model=insightsleepnet
 ```
 ```
-python train_transfer.py --model=sleepconvnet
+python modeling/train_transfer.py --model=sleepconvnet
 ```
 
 ### Experiment 2: WatchSleepNet Ablation Study
 
+You can perform ablation experiments on WatchSleepNet using `modeling/watchsleepnet_cv_ablation.py`. Run WatchSleepNet without the TCN and Attention components
+```
+python modeling/watchsleepnet_cv_ablation.py
+```
+or 
+```
+python modeling/watchsleepnet_transfer_ablation.py
+```
+> [!TIP]
+> `watchsleepnet_cv_ablation.py` tests performance on using only DREAMT while `watchsleepnet_transfer_ablation.py` performs transfer learning on SHHS+MESA and then tests on DREAMT.
+
+Utilize the argument flags to run either/both the TCN and Attention components
+```
+python modeling/watchsleepnet_cv_ablation.py --use_tcn --use_attention
+```
 
 ### Hyperparameter Tuning
+
+You can perform hyperparameter tuning for WatchSleepNet, InsightSleepNet, and SleepConvNet. For example, to tune WatchSleepNet run
+```
+python modeling/watchsleepnet_hpt.py
+```
