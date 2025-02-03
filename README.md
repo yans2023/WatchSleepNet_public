@@ -14,84 +14,35 @@ WatchSleepNet is a novel deep learning model designed to improve sleep staging u
 │   ├── dreamt
 │   │   ├── dreamt_extract_ibi_se.py # Run program to extract IBI from downloaded DREAMT dataset
 │   │   └── utils.py
-│   ├── __init__.py
 │   ├── public_datasets
-│   │   ├── extract_ibi_ppg.py
-│   │   ├── extract_ibi.py
-│   │   ├── __init__.py
-│   │   ├── mesa_add_ahi.py
-│   │   └── shhs_add_ahi.py
-│   └── visualize_raw_signal.ipynb
-├── __init__.py
+│   │   ├── mesa_extract_ppg.py # Run program to extract PPG from MESA dataset
+│   │   ├── shhs_extract_ecg.py # Run program to extract ECG from SHHS dataset
+│   │   ├── extract_and_save_ibi.py # Run program to save IBI extracted from both MESA and SHHS datasets.
+│   │   └── utils.py
+│   └── visualize_raw_signal.ipynb # (Optional) Example code to visualize raw signals
 ├── modeling
-│   ├── checkpoints
-│   │   ├── insightsleepnet
-│   │   │   ├── dreamt_pibi
-│   │   │   └── shhs_mesa_ibi
-│   │   │       └── best_saved_model_vtrial.pt
-│   │   └── watchsleepnet
-│   │       ├── dreamt_pibi
-│   │       │   ├── best_saved_model_vtrial_fold1.pt
-│   │       │   ├── best_saved_model_vtrial_fold2.pt
-│   │       │   ├── best_saved_model_vtrial_fold3.pt
-│   │       │   ├── best_saved_model_vtrial_fold4.pt
-│   │       │   └── best_saved_model_vtrial_fold5.pt
-│   │       └── shhs_mesa_ibi
-│   │           └── best_saved_model_vtrial.pt
-│   ├── cleaned_files_apnea_severity.json
-│   ├── config.py
+│   ├── config.py # Configure parameters related to dataset and models
 │   ├── data_setup.py
 │   ├── engine.py
-│   ├── __init__.py
-│   ├── insightsleepnet_hpt.py
-│   ├── models
-│   │   ├── checkpoints
-│   │   │   └── watchsleepnet
-│   │   │       ├── dreamt_pibi
-│   │   │       ├── shhs_ibi
-│   │   │       └── shhs_mesa_ibi
-│   │   │           └── best_saved_model_vtrial.pt
-│   │   ├── __init__.py
+│   ├── insightsleepnet_hpt.py # Run program to perform hyperparameter tuning for InsightSleepNet
+│   ├── sleepconvnet_hpt.py # Run program to perform hyperparameter tuning for SleepConvNet
+│   ├── watchsleepnet_hpt.py # Run program to perform hyperparameter tuning for WatchSleepNet
+│   ├── models # Model architectures
 │   │   ├── insightsleepnet.py
-│   │   ├── __pycache__
-│   │   │   ├── __init__.cpython-310.pyc
-│   │   │   ├── insightsleepnet.cpython-310.pyc
-│   │   │   ├── sleepconvnet.cpython-310.pyc
-│   │   │   └── watchsleepnet.cpython-310.pyc
 │   │   ├── sleepconvnet.py
 │   │   └── watchsleepnet.py
-│   ├── notebooks
-│   │   ├── epoch_proportion.ipynb
-│   │   ├── figures
-│   │   │   ├── confusion_matrix_apnea_category_finetune_all_layers.png
-│   │   │   ├── confusion_matrix_apnea_category_finetune_tcn+lstm.png
-│   │   │   ├── confusion_matrix_apnea_category.png
-│   │   │   ├── confusion_matrix_overall_finetune_all_layers.png
-│   │   │   └── sampling_experiment_performance_difference.png
-│   │   ├── __init__.py
-│   │   ├── plot_ablation_performances.ipynb
-│   │   ├── plot_cm.ipynb
-│   │   ├── population_characteristics.ipynb
-│   │   ├── sampling_experiments_plotting.ipynb
-│   │   └── visualize_prediction.ipynb
-│   ├── optuna_studies
-│   │   └── insightsleepnet_hpo_results.csv
-│   ├── print_models.py
-│   ├── __pycache__
-│   │   ├── config.cpython-310.pyc
-│   │   ├── data_setup.cpython-310.pyc
-│   │   └── engine.cpython-310.pyc
-│   ├── sleepconvnet_hpt.py
-│   ├── torch_installation_check.py
+│   ├── notebooks # (Optional) Example code to visualize experiment results
+│   ├── optuna_studies # Hyperparameter tuning results
 │   ├── train_cv.py
-│   ├── train_transfer.py
+│   ├── train_transfer.py # Run program to perform transfer learning experiments
 │   ├── utils.py
-│   ├── watchsleepnet_cv_ablation.py
-│   ├── watchsleepnet_hpt.py
-│   └── watchsleepnet_transfer_ablation.py
+│   ├── watchsleepnet_cv_ablation.py # Run program to perform ablation experiments (DREAMT) on WatchSleepNet
+│   └── watchsleepnet_transfer_ablation.py # Run program to perform ablation experiments (Transfer Learning) on WatchSleepNet
 ├── README.md
 └── requirements.txt
 ```
+> [!TIP]
+> The files without description contain utility functions that are used in the main programs.
 
 ## Installation 
 
