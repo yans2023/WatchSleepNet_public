@@ -5,8 +5,8 @@ import warnings
 import random
 import numpy as np
 
-from data_setup import create_dataloaders, create_dataloaders_kfolds
-from models.watchsleepnet import WatchSleepNet  # Updated model name
+from data_setup import create_dataloaders_kfolds
+from models.watchsleepnet import WatchSleepNet
 from models.insightsleepnet import InsightSleepNet
 from models.sleepconvnet import SleepConvNet
 from config import (
@@ -16,7 +16,7 @@ from config import (
     dataset_configurations,
 )
 from engine import train_cross_validate  # Unified import from engine.py
-from utils import print_model_info
+
 
 # Seed settings for reproducibility
 def set_seed(seed: int = 0):
