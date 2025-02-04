@@ -31,7 +31,6 @@ WatchSleepNet is a novel deep learning model designed to improve sleep staging u
 │   │   ├── insightsleepnet.py
 │   │   ├── sleepconvnet.py
 │   │   └── watchsleepnet.py
-│   ├── optuna_studies # Hyperparameter tuning results
 │   ├── train_cv.py
 │   ├── train_transfer.py # Run program to perform transfer learning experiments
 │   ├── watchsleepnet_cv_ablation.py # Run program to perform ablation experiments (DREAMT) on WatchSleepNet
