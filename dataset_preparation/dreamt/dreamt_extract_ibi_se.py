@@ -198,7 +198,7 @@ def extract_ibi_hard_code(root_path, filename):
         logging.exception(f"Error processing file: {filename}")
 
 
-root_path = "/mnt/linux_partition/DREAMT"
-list_files = root_path / "data"
+root_path = ".../DREAMT" # TO fill in: path to the DREAMT dataset
+list_files = root_path / "data_100Hz"
 for file in tqdm(list_files.iterdir()):
     extract_ibi_hard_code(root_path, file)

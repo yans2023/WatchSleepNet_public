@@ -15,11 +15,9 @@ torch.manual_seed(seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-# System Settings
 NUM_WORKERS = os.cpu_count() // 2
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--train_dataset",
@@ -54,7 +52,7 @@ parser.add_argument(
     action="store_true",
     help="Enable Attention module.",
 )
-# Set default values to False
+
 parser.set_defaults(use_tcn=False, use_attention=False)
 
 args = parser.parse_args()
@@ -113,7 +111,6 @@ model_save_path = dataset_configurations[args.train_dataset]["get_model_save_pat
 
 print(model_save_path)
 
-# Replace the finetuning step with cross-validation
 print("Perform cross-validation on:", args.train_dataset)
 dataloader_folds = create_dataloaders_kfolds(
     dir=train_config["directory"],
@@ -126,7 +123,6 @@ dataloader_folds = create_dataloaders_kfolds(
     downsampling_rate=train_config["downsampling_rate"],
 )
 
-# Define loss function
 loss_fn = model_config['LOSS_FN']
 
 model_config['use_attention'] = args.use_attention
@@ -138,7 +134,7 @@ results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc = train_cross_val
     model_name=args.model,
     model_params=model_config,  # Contains 'use_attention', 'use_tcn', 'num_classes', etc.
     dataloader_folds=dataloader_folds,
-    saved_model_path=None,  # Assuming you're training from scratch
+    saved_model_path=None,      # if training from scratch
     learning_rate=model_config.get('LEARNING_RATE', 1e-3),
     weight_decay=model_config.get('WEIGHT_DECAY', 1e-4),
     loss_fn=loss_fn,
@@ -150,7 +146,7 @@ results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc = train_cross_val
         dataset_name=args.train_dataset, 
         version="cv_no_transfer_ablate_{}_tcn_{}_att".format(args.use_tcn, args.use_attention)
     ),
-    freeze_layers=False,  # Set to True if you need to freeze layers
+    freeze_layers=False, 
 )
 
 # Output the results

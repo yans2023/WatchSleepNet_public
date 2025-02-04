@@ -10,15 +10,9 @@ import torch.nn as nn
 import optuna
 from optuna.exceptions import TrialPruned
 
-# ---------------------
-# Environment Variables and Warning Filters
-# ---------------------
 os.environ["TORCHDYNAMO_DISABLE"] = "1"
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# ---------------------
-# Your Custom Modules
-# ---------------------
 from data_setup import create_dataloaders_kfolds
 from config import (
     InsightSleepNetConfig,

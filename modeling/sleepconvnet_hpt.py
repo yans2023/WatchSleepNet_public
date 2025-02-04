@@ -14,17 +14,12 @@ from models.sleepconvnet import SleepConvNet
 from config import SleepConvNetConfig, dataset_configurations
 from engine import train_cross_validate_hpo, train_cross_validate
 
-# ----------------------- Logging Configuration -----------------------
-
-# Configure logging to output to console with a specific format
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
-
-# ----------------------- Utility Functions -----------------------
 
 def set_seed(seed: int = 0):
     """
@@ -36,7 +31,7 @@ def set_seed(seed: int = 0):
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # If using multi-GPU.
+    torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     logger.info(f"Seed set to {seed} for reproducibility.")
@@ -111,9 +106,6 @@ def initialize_model(model_params: dict, device: torch.device) -> SleepConvNet:
     logger.info("Initialized SleepConvNet model.")
     return model
 
-
-# ----------------------- Objective Function -----------------------
-
 def objective(trial, config: dict, dataloader_folds: list, device: torch.device, train_config: dict, model_name: str):
     """
     Objective function for Optuna hyperparameter optimization.
@@ -129,8 +121,7 @@ def objective(trial, config: dict, dataloader_folds: list, device: torch.device,
     Returns:
         float: The metric to maximize (e.g., Cohen's Kappa).
     """
-    # Suggest hyperparameters
-    dropout_rate = 0.2  # Fixed as per current setup
+    dropout_rate = 0.2  # Can be tuned as well
 
     # Choose conv_layers_configs
     conv_layers_configs = trial.suggest_categorical(
@@ -151,8 +142,7 @@ def objective(trial, config: dict, dataloader_folds: list, device: torch.device,
         dilation_layers_configs = [(64, 64, 7, d) for d in [2, 4, 8]]
     elif final_in_channels == 32:
         dilation_layers_configs = [(32, 32, 7, d) for d in [2, 4]]
-    # Optionally, you can tune other hyperparameters here
-    # For example, learning_rate, weight_decay, etc.
+
     learning_rate = trial.suggest_loguniform("learning_rate", 1e-5, 1e-2)
     weight_decay = trial.suggest_loguniform("weight_decay", 1e-6, 1e-3)
 
@@ -194,20 +184,10 @@ def objective(trial, config: dict, dataloader_folds: list, device: torch.device,
     logger.info(f"Trial completed with overall_kappa: {overall_kappa}")
     return overall_kappa
 
-
-# ----------------------- Main Function -----------------------
-
 def main():
-    # Suppress specific warnings
     warnings.filterwarnings("ignore", category=UserWarning)
-
-    # Set seed for reproducibility
     set_seed(seed=0)
-
-    # Determine computation device
     device = get_device()
-
-    # Parse command-line arguments
     args = parse_arguments()
 
     # Retrieve configuration based on the dataset argument
@@ -216,7 +196,6 @@ def main():
         logger.error(f"Configuration for dataset '{args.train_dataset}' not found.")
         raise ValueError(f"Configuration for dataset '{args.train_dataset}' not found.")
 
-    # Convert model configuration to dictionary
     model_config = SleepConvNetConfig.to_dict()
 
     # Create folds for cross-validation
@@ -259,9 +238,6 @@ def main():
     logger.info("  Params: ")
     for key, value in trial.params.items():
         logger.info(f"    {key}: {value}")
-
-
-# ----------------------- Entry Point -----------------------
 
 if __name__ == "__main__":
     main()

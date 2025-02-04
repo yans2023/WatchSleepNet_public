@@ -18,7 +18,6 @@ from config import (
 from engine import train_cross_validate 
 
 def set_seed(seed: int = 0):
-    """Set seed for reproducibility."""
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)
@@ -26,7 +25,6 @@ def set_seed(seed: int = 0):
     torch.backends.cudnn.benchmark = False
 
 def get_device() -> str:
-    """Determine the device to run the model on."""
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 def parse_arguments():
@@ -89,11 +87,8 @@ def initialize_model(model_name: str, config: dict, device: str) -> torch.nn.Mod
 def main():
     # Suppress UserWarnings
     warnings.filterwarnings("ignore", category=UserWarning)
-
     set_seed(seed=0)
-
     device = get_device()
-
     args = parse_arguments()
     
     # Retrieve configuration based on the dataset argument
@@ -139,7 +134,6 @@ def main():
     
     print(f"Model save path: {model_save_path}")
     
-    # Define loss function
     loss_fn = model_config.get('LOSS_FN')
     
     # Perform cross-validation without transfer learning
@@ -147,7 +141,7 @@ def main():
         model_name=args.model,
         model_params=model_config,  # Contains 'use_attention', 'use_tcn', 'num_classes', etc.
         dataloader_folds=dataloader_folds,
-        saved_model_path=None,  # Assuming you're training from scratch
+        saved_model_path=None,      # If training from scratch
         learning_rate=model_config.get('LEARNING_RATE', 1e-3),
         weight_decay=model_config.get('WEIGHT_DECAY', 1e-4),
         loss_fn=loss_fn,
@@ -159,7 +153,7 @@ def main():
             dataset_name=args.train_dataset, 
             version="cv_no_transfer"
         ),
-        freeze_layers=False,  # Set to True if you need to freeze layers
+        freeze_layers=False,
     )
     
     # Optionally, print or log the results

@@ -41,7 +41,7 @@ def set_seed(seed: int = 0):
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # If using multi-GPU
+    torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     logger.info(f"Seed set to {seed} for reproducibility.")
@@ -104,8 +104,6 @@ def objective(
     Returns:
         float: The metric to maximize (e.g., Cohen's Kappa).
     """
-
-    # ------------------ Hyperparameter Suggestions ------------------
     # Number of TCN layers (depth of TCN block)
     tcn_layers = trial.suggest_int("tcn_layers", 1, 4)
 

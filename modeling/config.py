@@ -6,7 +6,7 @@ import torch.nn as nn
 
 
 ### Enter path to your dataset (formatted per README)
-DATASET_DIR = "/mnt/nvme2/"
+DATASET_DIR = "..."
 
 
 # Define the dynamic file save path generator

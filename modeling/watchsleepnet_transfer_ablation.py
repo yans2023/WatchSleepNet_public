@@ -19,7 +19,6 @@ from engine import (
     validate_step, 
     train_ablate_evaluate,
 )
-# We assume your ablation function is named "train_ablate_evaluate(...)"
 
 seed = 0
 np.random.seed(seed)
@@ -142,10 +141,8 @@ else:
         task=args.task,
     )
 
-    # Build the loss function
     loss_fn = model_config_class.LOSS_FN
 
-    # Call the new train(...) function
     train_logs = train(
         model_name=args.model,
         model_params=model_config_dict,  # includes ablation flags if watchsleepnet
@@ -162,10 +159,8 @@ else:
         freeze_layers=False,
     )
 
-    # Optionally validate on val_dataloader
     if os.path.exists(pretrain_save_path):
         print("\nPretraining complete. Loading best checkpoint for final validation.")
-        # Recreate the model from the dict, load state, do a quick val check:
         from engine import setup_model_and_optimizer, validate_step
         pretrained_model, _ = setup_model_and_optimizer(
             model_name=args.model,
