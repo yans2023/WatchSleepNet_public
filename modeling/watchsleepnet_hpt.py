@@ -21,15 +21,12 @@ import numpy as np
 import optuna
 from optuna.exceptions import TrialPruned
 
-# Replace these with your actual data loading and engine modules
 from data_setup import create_dataloaders_kfolds
-from engine import train_cross_validate_hpo  # Adjust to your actual training loop for WatchSleepNet
+from engine import train_cross_validate_hpo  
 
-# Import WatchSleepNet and/or related configuration
-from models.watchsleepnet import WatchSleepNet  # Adjust import path as needed
-from config import dataset_configurations  # Adjust if you have a config dict for each dataset
+from models.watchsleepnet import WatchSleepNet
+from config import dataset_configurations
 
-# ----------------------- Logging Configuration -----------------------
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -37,7 +34,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ----------------------- Utility Functions -----------------------
 def set_seed(seed: int = 0):
     """
     Set seed for reproducibility.
@@ -73,7 +69,6 @@ def parse_arguments() -> argparse.Namespace:
         choices=[
             "shhs_ibi",
             "mesa_eibi",
-            "mesa_pibi",
             "shhs_mesa_ibi",
         ],
         help="Dataset to train on."
@@ -89,7 +84,6 @@ def parse_arguments() -> argparse.Namespace:
     logger.info("Command-line arguments parsed successfully.")
     return args
 
-# ----------------------- Objective Function for Optuna -----------------------
 def objective(
     trial,
     train_config: dict,
@@ -118,6 +112,18 @@ def objective(
     # Number of LSTM layers
     lstm_layers = trial.suggest_int("lstm_layers", 1, 3)
 
+    # Numer of heads for multiheaded attention
+    attention_heads = trial.suggest_int("attention_heads", 8, 32)
+
+    # Number of TCN channels
+    tcn_channels = trial.suggest_int("tcn_channels", 64, 256)
+
+    # Number of LSTM hidden dimensions
+    lstm_hidden_dims = trial.suggest_int("lstm_hidden_dims", 64, 256)
+
+    # Size of TCN kernel
+    tcn_kernal_size = trial.suggest_int("tcn_kernal_size", 3, 7)
+
     # Optionally, tune whether to use TCN or attention
     use_tcn = trial.suggest_categorical("use_tcn", [True, False])
     use_attention = trial.suggest_categorical("use_attention", [True, False])
@@ -126,18 +132,15 @@ def objective(
     learning_rate = trial.suggest_loguniform("learning_rate", 1e-5, 1e-3)
     weight_decay = trial.suggest_loguniform("weight_decay", 1e-6, 1e-3)
 
-    # ------------------ Model Initialization ------------------
     def model_init():
-        # Build the WatchSleepNet with the suggested hyperparameters
-        # Adjust input dimensions as per your setup
         model = WatchSleepNet(
-            num_features=1,        # e.g., IBI has 1 channel
-            num_channels=64,       # TCN channel size
-            kernel_size=3,         # TCN kernel size
-            hidden_dim=128,        # LSTM hidden dimension
-            num_heads=4,           # Multi-head attention heads
-            num_layers=lstm_layers, # LSTM layers
-            num_classes=3,         # e.g., 3-class sleep staging
+            num_features=1,                 # e.g., IBI has 1 channel
+            num_channels=tcn_channels,      # TCN channel size
+            tcn_kernel_size=tcn_kernal_size,# TCN kernel size
+            hidden_dim=lstm_hidden_dims,    # LSTM hidden dimension
+            num_heads=attention_heads,      # Multi-head attention heads
+            num_layers=lstm_layers,         # LSTM layers
+            num_classes=3,                  # e.g., 3-class sleep staging
             tcn_layers=tcn_layers,
             use_tcn=use_tcn,
             use_attention=use_attention,
@@ -145,8 +148,6 @@ def objective(
         return model
 
     try:
-        # ------------------ Cross-Validation Training ------------------
-        # Adjust train_cross_validate_hpo to your actual function for training WatchSleepNet
         results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc = train_cross_validate_hpo(
             model_init=model_init,
             dataloader_folds=dataloader_folds,
@@ -166,12 +167,9 @@ def objective(
         logger.error(f"An error occurred during training: {e}")
         raise TrialPruned()
 
-    # ------------------ Metric to Maximize ------------------
-    # We'll use overall_kappa in this example
     logger.info(f"Trial completed with overall_kappa={overall_kappa}")
     return overall_kappa
 
-# ----------------------- Main Function -----------------------
 def main():
     warnings.filterwarnings("ignore", category=UserWarning)
     set_seed(seed=0)
@@ -185,7 +183,6 @@ def main():
         raise ValueError(f"Configuration for dataset '{args.train_dataset}' not found.")
 
     # Setup cross-validation dataloaders
-    # Adjust create_dataloaders_kfolds call as needed for your data
     dataloader_folds = create_dataloaders_kfolds(
         dir=train_config["directory"],
         dataset=args.train_dataset,
@@ -202,8 +199,7 @@ def main():
     study = optuna.create_study(direction="maximize")
     logger.info("Optuna study created. Starting WatchSleepNet optimization...")
 
-    # Run only 5 trials for demonstration
-    n_trials = 5
+    n_trials = 10
 
     # Optimize the objective function
     study.optimize(

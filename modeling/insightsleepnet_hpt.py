@@ -24,11 +24,8 @@ from config import (
     InsightSleepNetConfig,
     dataset_configurations,
 )
-from engine import train_cross_validate_hpo  # Make sure you have the correct import path
+from engine import train_cross_validate_hpo 
 
-# ---------------------
-# Logging Configuration
-# ---------------------
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -36,13 +33,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ---------------------
-# Seed Settings
-# ---------------------
 def set_seed(seed: int = 0):
-    """
-    Set seed for reproducibility.
-    """
+
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)
@@ -51,9 +43,6 @@ def set_seed(seed: int = 0):
     torch.backends.cudnn.benchmark = False
     logger.info(f"Seed set to {seed} for reproducibility.")
 
-# ---------------------
-# Device Configuration
-# ---------------------
 def get_device() -> torch.device:
     """
     Determine the computation device (CPU or CUDA).
@@ -62,9 +51,7 @@ def get_device() -> torch.device:
     logger.info(f"Computation device set to: {device}")
     return device
 
-# ---------------------
-# Argument Parsing
-# ---------------------
+
 def parse_arguments() -> argparse.Namespace:
     """
     Parse command-line arguments.
@@ -95,35 +82,16 @@ def parse_arguments() -> argparse.Namespace:
     logger.info("Command-line arguments parsed successfully.")
     return args
 
-# ---------------------
-# Objective Function for Optuna
-# ---------------------
+
 def objective(trial):
     """
     Objective function for Optuna hyperparameter optimization.
     """
 
-    #
-    # 1) Sample the total number of blocks (4, 5, or 6).
-    #
     num_blocks = trial.suggest_categorical("num_blocks", [4, 5, 6])
 
-    #
-    # 2) Sample a "last_layers_size" parameter: "small" or "big".
-    #
-    # We'll interpret that as how large the n_filters are in the last 1 or 2 blocks.
-    #
     last_layers_size = trial.suggest_categorical("last_layers_size", ["small", "big"])
 
-    #
-    # 3) Build block_configs based on the above choices
-    #
-    # The first few blocks might use modest expansions, and the last block or two
-    # might differ based on "small" vs "big".
-    #
-    # For example, each entry is a dict describing that block's "in_channels", "n_filters", etc.
-    # You can adapt to your actual architecture expansions.
-    #
     base_block = {
         "kernel_sizes": [9, 19, 39],
         "bottleneck_channels": 16,
@@ -131,8 +99,7 @@ def objective(trial):
     }
 
     block_configs = []
-    in_ch = 32  # e.g., after initial_conv if you do something like initial_conv->32
-
+    in_ch = 32  
     for b_idx in range(num_blocks):
         # Decide how big "n_filters" is for the block
         if b_idx < num_blocks - 1:
@@ -152,13 +119,8 @@ def objective(trial):
         }
         block_configs.append(block_dict)
 
-        # Update in_channels for the next block
-        # If we use_residual, final out_channels = 4*n_filters
         in_ch = 4 * n_filters
 
-    #
-    # 4) Create the model_init function that instantiates InsightSleepNet with block_configs
-    #
     def model_init():
         from models.insightsleepnet import InsightSleepNet
         model = InsightSleepNet(
@@ -172,9 +134,6 @@ def objective(trial):
         )
         return model
 
-    #
-    # 5) Cross-validate using train_cross_validate_hpo
-    #
     checkpoint_path = train_config["get_model_save_path"](
         model_name="insightsleepnet",
         dataset_name=args.train_dataset,
@@ -204,12 +163,9 @@ def objective(trial):
         logger.error(f"An error occurred during training: {e}")
         raise TrialPruned()
 
-    # Return the metric you want to maximize
     return overall_kappa
 
-# ---------------------
-# Main Function
-# ---------------------
+
 def main():
     # 1) Set seed for reproducibility
     set_seed(seed=0)
@@ -266,13 +222,9 @@ def main():
     for key, value in trial.params.items():
         logger.info(f"    {key}: {value}")
 
-    # Optionally, save results
     os.makedirs("optuna_studies", exist_ok=True)
     study.trials_dataframe().to_csv("optuna_studies/insightsleepnet_hpo_results.csv", index=False)
     logger.info("Optuna study results saved to 'optuna_studies/insightsleepnet_hpo_results.csv'.")
 
-# ---------------------
-# Entry Point
-# ---------------------
 if __name__ == "__main__":
     main()

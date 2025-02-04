@@ -4,9 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-########################################
-# Simple Inception Module
-########################################
+
 def pass_through(x):
     return x
 
@@ -82,9 +80,6 @@ class Inception(nn.Module):
             out = self.activation(out + res)
         return out
 
-########################################
-# One "Block" = 3 Inception modules in sequence
-########################################
 class InceptionBlock(nn.Module):
     """
     Similar pattern: 3 sequential Inceptions, each producing 4 * n_filters from its own n_filters.
@@ -132,9 +127,7 @@ class InceptionBlock(nn.Module):
         x = self.inception3(x)
         return x
 
-########################################
-# A tiny TCN
-########################################
+
 class TemporalBlock(nn.Module):
     def __init__(
         self,
@@ -184,6 +177,7 @@ class TemporalBlock(nn.Module):
         res = x if self.downsample is None else self.downsample(x)
         return self.relu(out + res)
 
+
 class TemporalConvNet(nn.Module):
     def __init__(self, in_channels, channel_sizes, kernel_size=8, dropout=0.2):
         super().__init__()
@@ -205,9 +199,6 @@ class TemporalConvNet(nn.Module):
     def forward(self, x):
         return self.network(x)
 
-########################################
-# TimeDistributed
-########################################
 class TimeDistributed(nn.Module):
     def __init__(self, module, batch_first=True):
         super().__init__()
@@ -221,9 +212,6 @@ class TimeDistributed(nn.Module):
         y = self.module(x2)
         return y.reshape(b, t, -1)
 
-########################################
-# Parametric "InsightSleepNet" Old-Style
-########################################
 
 class InsightSleepNet(nn.Module):
     """
@@ -255,7 +243,6 @@ class InsightSleepNet(nn.Module):
         self.relu = nn.ReLU()
 
         # 2) Build the sequence of InceptionBlocks
-        #    We'll store them in a nn.ModuleList or nn.Sequential
         self.block_list = nn.ModuleList()
         if block_configs is None:
             block_configs = []
@@ -275,7 +262,6 @@ class InsightSleepNet(nn.Module):
         self.final_pool = nn.AdaptiveAvgPool1d(output_size=final_pool_size)
 
         # 4) Suppose after the last block, the channel dimension is 4 * n_filters_of_last_block
-        #    Let's guess that from the final block config:
         if len(block_configs) > 0:
             last_n_filters = block_configs[-1]["n_filters"]
             final_ch = 4 * last_n_filters
@@ -337,9 +323,6 @@ class InsightSleepNet(nn.Module):
 
         return x
 
-#########################################################
-# Single-step training example with param config
-#########################################################
 def demo_insightsleepnet_train_step():
     """
     Demonstrates how to build a ParamInsightSleepNet with a custom 'block_configs',
@@ -347,7 +330,6 @@ def demo_insightsleepnet_train_step():
     """
 
     # Suppose we want 6 blocks, each with a progressive in_channels, n_filters, etc.
-    # This will replicate your old "6 block" approach, but you can tune them as you like.
     block_configs = [
         # block1
         {

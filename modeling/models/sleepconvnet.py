@@ -355,5 +355,4 @@ def run_tests_with_configurations():
 
 
 if __name__ == "__main__":
-    # Run all tests with different hyperparameter configurations
     run_tests_with_configurations()

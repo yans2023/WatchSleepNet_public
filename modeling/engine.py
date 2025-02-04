@@ -48,10 +48,6 @@ class EarlyStoppingAndCheckpoint:
         self.counter = 0
 
     def __call__(self, metrics, model):
-        """
-        ...
-        (Docstring omitted for brevity; no changes made)
-        """
         scores = {metric: metrics[metric] for metric in self.monitor}
 
         if None in self.best_scores.values():
@@ -104,10 +100,6 @@ class EarlyStoppingAndCheckpoint:
 
 
 def pretty_print_confusion_matrix(cm, labels, title=None):
-    """
-    ...
-    (Docstring omitted for brevity; no changes made)
-    """
     if title:
         print(title)
         print()
@@ -145,10 +137,6 @@ def compute_metrics(
     print_conf_matrix=False,
     category_name=None
 ):
-    """
-    ...
-    (Docstring omitted for brevity; no changes made)
-    """
     nan_predictions_count = np.isnan(predictions).sum()
 
     if nan_predictions_count > 0:
@@ -208,10 +196,6 @@ def compute_metrics(
 
 
 def check_for_nan_grads(model):
-    """
-    ...
-    (Docstring omitted for brevity; no changes made)
-    """
     for name, param in model.named_parameters():
         if param.grad is not None:
             if torch.isnan(param.grad).any():
@@ -221,10 +205,6 @@ def check_for_nan_grads(model):
 
 
 def replace_nan_grads(model):
-    """
-    ...
-    (Docstring omitted for brevity; no changes made)
-    """
     for param in model.parameters():
         if param.grad is not None:
             param.grad = torch.where(
@@ -312,12 +292,9 @@ def train_step(model, dataloader, loss_fn, optimizer, device, model_name="watchs
         try:
             optimizer.zero_grad()
 
-            # --- Refactored forward pass ---
             masked_outputs, masked_labels, predicted, pred_probs, mask, outputs = forward_pass_with_mask(
                 model, X, y, lengths, device, task, model_name
             )
-            # --------------------------------
-
             # Compute the loss using the masked outputs and labels
             loss = loss_fn(masked_outputs, masked_labels)
 
@@ -402,12 +379,9 @@ def validate_step(model, dataloader, loss_fn, device, task="sleep_staging"):
 
     with torch.no_grad():
         for X, y, lengths, AHIs in tqdm(dataloader, desc="Validation Batch", leave=False):
-            # --- Refactored forward pass (no grad) ---
             masked_outputs, masked_labels, predicted, pred_probs, mask, outputs = forward_pass_with_mask(
                 model, X, y, lengths, device, task
             )
-            # ------------------------------------------
-
             loss = loss_fn(masked_outputs, masked_labels)
             val_loss += loss.item()
 
@@ -443,15 +417,12 @@ def test_step(model, dataloader, device, task="sleep_staging"):
             masked_outputs, masked_labels, predicted, pred_probs, mask, outputs = forward_pass_with_mask(
                 model, data, labels, lengths, device, task
             )
-            # ------------------------------------------
-
             # Store valid (flattened) results
             all_true_labels.extend(masked_labels.cpu().numpy())
             all_predicted_labels.extend(predicted.cpu().numpy())
             all_predicted_probabilities.extend(pred_probs.detach().cpu().numpy())
 
             # Since AHI values are per sample, we repeat each 'ahi' for the valid sequence length
-            # (But in many pipelines, the entire sequence belongs to one subject, so you might just append once.)
             for ahi, length in zip(ahis, lengths):
                 all_ahi_values.extend([ahi] * length)
 
@@ -466,10 +437,6 @@ def test_step(model, dataloader, device, task="sleep_staging"):
 def compute_metrics_per_ahi_category(
     true_labels, predicted_labels, predicted_probabilities, ahi_values
 ):
-    """
-    ...
-    (Docstring omitted for brevity; no changes made)
-    """
     ahi_categories = {
         "Normal": (0, 5),
         "Mild": (5, 15),
@@ -512,12 +479,6 @@ def compute_metrics_per_ahi_category(
 
     return metrics_per_category
 
-
-#
-# The rest of the training/validation/testing loops remain unchanged,
-# but now benefit from the refactored forward pass.
-#
-
 def train(
     model,
     model_name,
@@ -530,10 +491,6 @@ def train(
     device,
     model_save_path,
 ):
-    """
-    ...
-    (Docstring omitted for brevity; no changes made)
-    """
     results = {
         "train_loss": [],
         "train_acc": [],
@@ -759,7 +716,6 @@ def setup_model_and_optimizer(
     return model, optimizer
 
 
-
 def run_training_epochs(
     model,
     train_dataloader,
@@ -779,8 +735,6 @@ def run_training_epochs(
     Helper function that runs the actual training loop with early stopping.
     Returns the best model path (if checkpointing) and training logs.
     """
-
-    from tqdm.auto import tqdm
 
     # Prepare early stopping
     early_stopping = EarlyStoppingAndCheckpoint(
@@ -891,11 +845,11 @@ def finalize_fold_or_repeat(
 ):
     """
     Helper function that:
-      1. loads the best checkpoint,
-      2. re-evaluates on train/val set to get best metrics,
-      3. runs on the test set (optionally),
-      4. updates best_results_dict with the new metrics,
-      5. returns predictions for further aggregation.
+        loads the best checkpoint,
+        re-evaluates on train/val set to get best metrics,
+        runs on the test set (optionally),
+        updates best_results_dict with the new metrics,
+        returns predictions for further aggregation.
     """
 
     # 1. Load best checkpoint
@@ -959,10 +913,10 @@ def aggregate_and_print_results(
 ):
     """
     Helper function that:
-      1) Prints mean ± std for each metric in results_dict (e.g., train_loss, val_loss, etc.)
-      2) Computes and prints overall performance metrics (Accuracy, F1, Kappa, REM F1, AUROC)
-      3) Optionally prints confusion matrix + AHI category metrics
-      4) Returns the tuple: (overall_acc, overall_f1, overall_kappa, rem_f1, auroc)
+        Prints mean ± std for each metric in results_dict (e.g., train_loss, val_loss, etc.)
+        Computes and prints overall performance metrics (Accuracy, F1, Kappa, REM F1, AUROC)
+        Optionally prints confusion matrix + AHI category metrics
+        Returns the tuple: (overall_acc, overall_f1, overall_kappa, rem_f1, auroc)
     """
     import numpy as np
     
@@ -1081,20 +1035,18 @@ def train(
             Each key maps to a list of floats, one per epoch.
     """
 
-    # 1) Set up the model and optimizer in one shot.
-    #    The 'model_params' dict includes everything needed for the model’s constructor
-    #    (including ablation flags like 'use_tcn'/'use_attention' if WatchSleepNet).
+    # Set up the model and optimizer in one shot.
     model, optimizer = setup_model_and_optimizer(
         model_name=model_name,
-        model_params=model_params,   # <--- core hyperparams for the chosen model
+        model_params=model_params,  
         device=device,
         saved_model_path=saved_model_path,
-        learning_rate=learning_rate, # from function arg or you could also read from model_params
-        weight_decay=weight_decay,   # from function arg or from model_params
+        learning_rate=learning_rate, 
+        weight_decay=weight_decay,  
         freeze_layers=freeze_layers,
     )
 
-    # 2) Call run_training_epochs to train & validate with early stopping.
+    # Call run_training_epochs to train & validate with early stopping.
     best_ckpt_path, training_logs = run_training_epochs(
         model=model,
         train_dataloader=train_dataloader,
@@ -1104,22 +1056,22 @@ def train(
         device=device,
         num_epochs=num_epochs,
         patience=patience,
-        checkpoint_path=model_save_path,   # Where to save the best model
-        monitor_metrics=("val_kappa", "val_loss"),  # <--- Now watch both Kappa (max) and Loss (min)
-        monitor_modes=("max", "min"),               # <--- Kappa is max, Loss is min
-        model_name=model_name,             # if special grad clipping needed
+        checkpoint_path=model_save_path,   
+        monitor_metrics=("val_kappa", "val_loss"), 
+        monitor_modes=("max", "min"),               
+        model_name=model_name,       
     )
 
-    # 3) Load the best checkpoint, if it exists.
+    # Load the best checkpoint, if it exists.
     if best_ckpt_path and os.path.exists(best_ckpt_path):
         model.load_state_dict(torch.load(best_ckpt_path))
 
-    # 4) Return the training logs (epoch-wise metrics).
+    # Return the training logs (epoch-wise metrics).
     return training_logs
 
 def train_and_evaluate(
     model_name,
-    model_params,                 # Dictionary that includes e.g. "num_classes", "use_tcn", etc.
+    model_params,     
     dataloader_folds,
     saved_model_path,
     loss_fn,
@@ -1132,9 +1084,7 @@ def train_and_evaluate(
     freeze_layers=False,
 ):
     """
-    Refactored version of train_and_evaluate that uses a dictionary-based approach
-    for model hyperparameters, and leverages setup_model_and_optimizer plus run_training_epochs
-    for cross-validation folds.
+    Pretrain and finetune on a smaller dataset
 
     Args:
         model_name (str):
@@ -1184,7 +1134,7 @@ def train_and_evaluate(
                 Final metrics computed across all folds' test sets.
     """
     import numpy as np
-    from tqdm.auto import tqdm
+    
 
     # Prepare a dictionary to store aggregated metrics for all folds
     best_results = {
@@ -1378,10 +1328,6 @@ def train_ablate_evaluate(
     Returns:
         tuple: (best_results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc)
     """
-    import numpy as np
-    import os
-    from tqdm.auto import tqdm
-
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -1581,9 +1527,6 @@ def train_cross_validate(
           - overall_acc, overall_f1, overall_kappa, rem_f1, auroc (float):
             Final metrics on the combined test sets across folds.
     """
-    import numpy as np
-    import os
-    from tqdm.auto import tqdm
 
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -1805,9 +1748,6 @@ def train_cross_validate_hpo(
           - results (dict): Aggregated metrics across folds (train, val, test).
           - overall_* (float): Final metrics computed across all folds' test sets.
     """
-    import numpy as np
-    import os
-    from tqdm.auto import tqdm
 
     # If device is not specified, detect automatically
     if device is None:

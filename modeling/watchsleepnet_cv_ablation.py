@@ -8,7 +8,6 @@ import random
 import numpy as np
 from models.watchsleepnet import WatchSleepNet
 
-# Seed settings for reproducibility
 seed = 0
 np.random.seed(seed)
 random.seed(seed)
@@ -63,8 +62,6 @@ args = parser.parse_args()
 # Retrieve configuration based on the dataset argument
 train_config = dataset_configurations.get(args.train_dataset, None)
 
-# Model initialization based on user argument
-# for the ablation study, model definition for WatchSleepNet does not need feature_channels
 model_config = WatchSleepNetConfig.to_dict()
 print("USE TCN: ", args.use_tcn)
 print("USE ATTENTION: ", args.use_attention)

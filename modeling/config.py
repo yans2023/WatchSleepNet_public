@@ -39,17 +39,6 @@ dataset_configurations = {
             suffix=suffix,
         ),
     },
-    "mesa_eibi": {
-        "directory": Path("{}MESA_EIBI".format(DATASET_DIR)),
-        "downsampling_rate": 1,
-        "multiplier": 1,
-        "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
-            model_name=model_name,
-            dataset_name=dataset_name,
-            version=version,
-            suffix=suffix,
-        ),
-    },
     "mesa_pibi": {
         "directory": Path("{}MESA_PIBI".format(DATASET_DIR)),
         "downsampling_rate": 1,

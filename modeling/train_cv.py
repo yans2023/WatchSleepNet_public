@@ -15,10 +15,8 @@ from config import (
     SleepConvNetConfig,
     dataset_configurations,
 )
-from engine import train_cross_validate  # Unified import from engine.py
+from engine import train_cross_validate 
 
-
-# Seed settings for reproducibility
 def set_seed(seed: int = 0):
     """Set seed for reproducibility."""
     np.random.seed(seed)
@@ -91,14 +89,11 @@ def initialize_model(model_name: str, config: dict, device: str) -> torch.nn.Mod
 def main():
     # Suppress UserWarnings
     warnings.filterwarnings("ignore", category=UserWarning)
-    
-    # Set seed for reproducibility
+
     set_seed(seed=0)
-    
-    # Determine device
+
     device = get_device()
-    
-    # Parse command-line arguments
+
     args = parse_arguments()
     
     # Retrieve configuration based on the dataset argument
@@ -119,9 +114,6 @@ def main():
     
     # Convert model config to dict
     model_config = model_config_class.to_dict()
-    
-    # Initialize model
-    model = initialize_model(args.model, model_config, device)
     
     # Generate dynamic save path for model and analysis
     model_save_path = train_config["get_model_save_path"](

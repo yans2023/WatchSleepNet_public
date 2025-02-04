@@ -12,12 +12,10 @@ from config import (
     SleepConvNetConfig,
     dataset_configurations,
 )
-from engine import train, train_and_evaluate, validate_step
+from engine import train, train_and_evaluate, validate_step, setup_model_and_optimizer
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-
-# ------------------ Reproducibility ------------------
 seed = 0
 np.random.seed(seed)
 random.seed(seed)
@@ -25,13 +23,9 @@ torch.manual_seed(seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-
-# ------------------ System Settings ------------------
 NUM_WORKERS = os.cpu_count() // 2
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-
-# ------------------ Settings ------------------
 TRAIN_DATASET = "shhs_mesa_ibi"
 TEST_DATASET = "dreamt_pibi"
 
@@ -50,15 +44,11 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-
-# --------------- Retrieve Dataset Configs ---------------
 train_config = dataset_configurations.get(TRAIN_DATASET, None)
 test_config = dataset_configurations.get(TEST_DATASET, None)
 if train_config is None or test_config is None:
     raise ValueError(f"Invalid dataset configuration for {TRAIN_DATASET} or {TEST_DATASET}.")
 
-
-# --------------- Pick the appropriate Model Config ---------------
 if args.model == "watchsleepnet":
     model_config_class = WatchSleepNetConfig
 elif args.model == "insightsleepnet":
@@ -70,8 +60,6 @@ else:
 
 model_config_dict = model_config_class.to_dict()  
 
-
-# --------------- Build the save paths ---------------
 model_save_path = train_config["get_model_save_path"](
     model_name=args.model, 
     dataset_name=TRAIN_DATASET, 
@@ -87,18 +75,13 @@ finetune_save_path = test_config["get_model_save_path"](
 print("Pretrain/Initial Model Save Path:", model_save_path)
 print("Finetune Model Save Path:", finetune_save_path)
 
-
-# --------------- Possibly load a pre-trained model ---------------
 if args.testing:
-    # We assume you've already pretrained => Just load & skip training
+    # If model already pre-trained, load it and skip pre-training
     if not os.path.exists(model_save_path):
         raise FileNotFoundError(f"No existing model at: {model_save_path}")
     print("Loaded pre-trained model from:", model_save_path)
 else:
-    # --------------- Pretraining ---------------
     print(f"Pretrain model from scratch and save to: {model_save_path}")
-
-    # Create a single train/val split for pretraining
     train_dataloader, val_dataloader, _ = create_dataloaders(
         dir=train_config["directory"],
         train_ratio=0.8,
@@ -111,7 +94,6 @@ else:
         task="sleep_staging",
     )
 
-    # Build the loss function
     loss_fn = model_config_class.LOSS_FN
     train_logs = train(
         model_name=args.model,
@@ -129,17 +111,11 @@ else:
         freeze_layers=False,
     )
 
-    # After training, the best checkpoint is already saved at model_save_path;
-    # Optionally evaluate final validation metrics:
-    from engine import validate_step
+    # After training, the best checkpoint should have already been saved at model_save_path;
+    
     if os.path.exists(model_save_path):
-        # Load the best model is stored at model_save_path
         pretrained_state = torch.load(model_save_path, map_location=DEVICE)
-        # We'll do a quick "validate_step" by creating a model again w/ same hyperparams
-        # But for simplicity, just re-run the engine's approach or do a short check.
         print("\n[Pretraining Completed] Loading best checkpoint for final validation step.")
-        # We can call setup_model_and_optimizer again with same hyperparams, then load_state_dict.
-        from engine import setup_model_and_optimizer
         pretrained_model, _ = setup_model_and_optimizer(
             model_name=args.model,
             model_params=model_config_dict,
@@ -165,7 +141,6 @@ else:
     else:
         print("Warning: No checkpoint found after pretraining. Skipping final validation.")
 
-# --------------- Transfer Learning / Finetuning ---------------
 print(f"Perform transfer learning on: {TEST_DATASET}")
 dataloader_folds = create_dataloaders_kfolds(
     dir=test_config["directory"],
@@ -179,21 +154,19 @@ dataloader_folds = create_dataloaders_kfolds(
 )
 print("Dataloader folds for finetuning created.\n")
 
-# We re-use the same `loss_fn`
 loss_fn = model_config_class.LOSS_FN
 
-# Now do cross-validation across the folds.
 print("Starting cross-validation finetuning + evaluation...")
 best_results, overall_acc, overall_f1, overall_kappa, rem_f1, auroc = train_and_evaluate(
     model_name=args.model,
-    model_params=model_config_dict,  # The dictionary of hyperparams
+    model_params=model_config_dict,  
     dataloader_folds=dataloader_folds,
-    saved_model_path=model_save_path,  # This is the path to your pre-trained checkpoint
+    saved_model_path=model_save_path,       # path to your the pre-trained checkpoint
     loss_fn=loss_fn,
     num_epochs=model_config_class.NUM_EPOCHS,
     patience=model_config_class.PATIENCE,
     device=DEVICE,
-    checkpoint_path=finetune_save_path,  # Base path for fold-specific finetuned checkpoints
+    checkpoint_path=finetune_save_path,     # Base path for fold-specific finetuned checkpoints
     learning_rate=model_config_class.LEARNING_RATE,
     weight_decay=model_config_class.WEIGHT_DECAY,
     freeze_layers=False,

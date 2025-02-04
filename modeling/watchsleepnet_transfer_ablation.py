@@ -21,7 +21,6 @@ from engine import (
 )
 # We assume your ablation function is named "train_ablate_evaluate(...)"
 
-# ----------------------- Reproducibility -----------------------
 seed = 0
 np.random.seed(seed)
 random.seed(seed)
@@ -29,11 +28,9 @@ torch.manual_seed(seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-# ----------------------- System Settings -----------------------
 NUM_WORKERS = os.cpu_count() // 2
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# ----------------------- Arg Parsing -----------------------
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--train_dataset",
@@ -74,7 +71,6 @@ parser.add_argument(
     help="If set, load pre-trained model and skip re-training."
 )
 
-# Ablation flags for watchsleepnet
 parser.add_argument(
     "--use_tcn", 
     dest="use_tcn", 
@@ -87,7 +83,7 @@ parser.add_argument(
     action="store_true",
     help="Enable Attention module in WatchSleepNet."
 )
-# Default them to False
+
 parser.set_defaults(use_tcn=False, use_attention=False)
 
 args = parser.parse_args()
@@ -96,13 +92,11 @@ assert (
     args.train_dataset != args.test_dataset
 ), "Train and test datasets must differ for pretraining + finetuning."
 
-# ----------------------- Retrieve Dataset Configs -----------------------
 train_config = dataset_configurations.get(args.train_dataset, None)
 test_config = dataset_configurations.get(args.test_dataset, None)
 if train_config is None or test_config is None:
     raise ValueError(f"No configuration found for {args.train_dataset} or {args.test_dataset}.")
 
-# ----------------------- Model Config + Dictionary -----------------------
 if args.model == "watchsleepnet":
     model_config_class = WatchSleepNetConfig
 elif args.model == "insightsleepnet":
@@ -112,11 +106,7 @@ elif args.model == "sleepconvnet":
 else:
     raise ValueError(f"Model not recognized: {args.model}")
 
-# Convert model config class to dict (assuming there's a .to_dict() method)
 model_config_dict = model_config_class.to_dict()
-
-# Now incorporate ablation flags if watchsleepnet
-# (If not watchsleepnet, they won't matter.)
 model_config_dict["use_tcn"] = args.use_tcn
 model_config_dict["use_attention"] = args.use_attention
 
@@ -131,7 +121,6 @@ finetune_save_path = test_config["get_model_save_path"](
 print(f"Pretrain model checkpoint path: {pretrain_save_path}")
 print(f"Finetune model checkpoint path: {finetune_save_path}")
 
-# ----------------------- Possibly Load Pretrained -----------------------
 if args.testing:
     # If testing flag is set, we assume pretrain is done, just load
     if os.path.exists(pretrain_save_path):
@@ -139,7 +128,6 @@ if args.testing:
     else:
         raise FileNotFoundError(f"Pre-trained model not found at: {pretrain_save_path}")
 else:
-    # ----------------------- Pretrain Phase -----------------------
     print(f"Pretraining from scratch on {args.train_dataset}. Saving to {pretrain_save_path} ...")
 
     train_dataloader, val_dataloader, _ = create_dataloaders(
@@ -202,7 +190,7 @@ else:
     else:
         print("Warning: No best checkpoint found after pretraining. Skipping validation step.")
 
-# ----------------------- Finetuning Cross-Validation -----------------------
+
 print(f"\nNow performing finetuning on {args.test_dataset}.")
 dataloader_folds = create_dataloaders_kfolds(
     dir=test_config["directory"],

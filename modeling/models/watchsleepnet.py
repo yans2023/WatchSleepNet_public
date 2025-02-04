@@ -306,7 +306,6 @@ def display_model_summary(model, x, lengths):
         class_name = module.__class__.__name__
         
         # module_input and module_output can be tuples (especially when multiple inputs/outputs)
-        # so we unwrap them for clarity.
         if isinstance(module_input, tuple):
             input_shapes = [inp.shape for inp in module_input if hasattr(inp, 'shape')]
         else:
@@ -323,9 +322,6 @@ def display_model_summary(model, x, lengths):
 
     # Recursively register hook_fn for all leaf modules
     for name, module in model.named_modules():
-        # If a module has no children, it's a leaf (e.g., Conv1d, Linear, LSTM, etc.)
-        # You can remove the condition if you want to see hooks for every submodule,
-        # including sequential containers.
         if len(list(module.children())) == 0:
             hooks.append(module.register_forward_hook(hook_fn))
 
