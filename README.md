@@ -20,7 +20,6 @@ WatchSleepNet is a novel deep learning model designed to improve sleep staging u
 │   │   ├── shhs_extract_ecg.py # Run program to extract ECG from SHHS dataset
 │   │   ├── extract_and_save_ibi.py # Run program to save IBI extracted from both MESA and SHHS datasets.
 │   │   └── utils.py
-│   └── visualize_raw_signal.ipynb # (Optional) Example code to visualize raw signals
 ├── modeling
 │   ├── config.py # Configure parameters related to dataset and models
 │   ├── data_setup.py
@@ -32,7 +31,6 @@ WatchSleepNet is a novel deep learning model designed to improve sleep staging u
 │   │   ├── insightsleepnet.py
 │   │   ├── sleepconvnet.py
 │   │   └── watchsleepnet.py
-│   ├── notebooks # (Optional) Example code to visualize experiment results
 │   ├── optuna_studies # Hyperparameter tuning results
 │   ├── train_cv.py
 │   ├── train_transfer.py # Run program to perform transfer learning experiments
