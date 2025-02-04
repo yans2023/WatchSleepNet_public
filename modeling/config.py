@@ -93,7 +93,6 @@ class WatchSleepNetConfig:
     Configuration for the new WatchSleepNet (previously watchsleepnet2) 
     with ablation flags for TCN/attention built in.
     """
-    # Training hyperparams
     BATCH_SIZE = 16
     LEARNING_RATE = 5e-5
     NUM_EPOCHS = 200
@@ -101,7 +100,6 @@ class WatchSleepNetConfig:
     WEIGHT_DECAY = 1e-4
     LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
 
-    # Model hyperparams (best from your tuning or existing defaults)
     NUM_INPUT_CHANNELS = 1         # e.g., raw input channels
     NUM_CHANNELS = 256             # 'num_channels'
     KERNEL_SIZE = 5
@@ -110,7 +108,7 @@ class WatchSleepNetConfig:
     TCN_LAYERS = 3
     NUM_LAYERS = 4
     NUM_CLASSES = 3
-    # For ablation flags, set them to True by default (or parameterize them)
+
     USE_TCN = True
     USE_ATTENTION = True
 
@@ -159,9 +157,6 @@ class InsightSleepNetConfig:
     DROPOUT_RATE = 0.2
     ACTIVATION = nn.ReLU()
 
-    # Instead of num_inception_blocks/n_filters, we define block-by-block:
-    # (in_channels, n_filters, bottleneck, kernel_sizes, use_residual)
-    # matching your old code’s 6-block progression from 32->64->64->128->256->512 channels.
     BLOCK_CONFIGS = [
         {
             "in_channels": 32,   "n_filters": 8,
@@ -201,9 +196,7 @@ class InsightSleepNetConfig:
         },
     ]
 
-    # For the initial conv “Conv1d(1,32, kernel_size=40, stride=20)” => out_channels=32
     INITIAL_CONV_OUT = 32
-    # Then final pooling => "AdaptiveAvgPool1d(1100)" 
     FINAL_POOL_SIZE = 1100
 
     @classmethod
@@ -219,7 +212,7 @@ class InsightSleepNetConfig:
             "output_size":      cls.OUTPUT_SIZE,
             "dropout_rate":     cls.DROPOUT_RATE,
             "activation":       cls.ACTIVATION,
-            "block_configs":    cls.BLOCK_CONFIGS,       # Old architecture blocks
+            "block_configs":    cls.BLOCK_CONFIGS,
             "initial_conv_out": cls.INITIAL_CONV_OUT,
             "final_pool_size":  cls.FINAL_POOL_SIZE,
             "num_classes":      cls.NUM_CLASSES,
@@ -237,7 +230,6 @@ class SleepConvNetConfig:
     """
     Configuration for SleepConvNet, with updated best hyperparams from HPO.
     """
-    # Training hyperparams
     BATCH_SIZE = 16
     LEARNING_RATE = 1e-4
     NUM_EPOCHS = 200
@@ -245,7 +237,6 @@ class SleepConvNetConfig:
     WEIGHT_DECAY = 1e-3
     LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
 
-    # Best model hyperparams from your tuning
     INPUT_SIZE = 750
     TARGET_SIZE = 256
     NUM_SEGMENTS = 1100
