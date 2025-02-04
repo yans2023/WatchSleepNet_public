@@ -49,7 +49,7 @@ WatchSleepNet is a novel deep learning model designed to improve sleep staging u
 1. Clone the repository
 
 ```
-git clone https://github.com/WillKeWang/WatchSleepNet_public.git
+git clone [redacted]/WatchSleepNet_public.git
 ```
 
 2. Setup virtual environment (recommended)
@@ -72,19 +72,21 @@ pip install -r requirements.txt
 
 ### Dataset Preperation
 
-1. Download the open source datasets ([DREAMT](https://physionet.org/content/dreamt/1.0.0/), [MESA](https://sleepdata.org/datasets/mesa), [SHHS](https://sleepdata.org/datasets/shhs)) to your designated directory.
+1. Download the open source datasets ([DREAMT](https://physionet.org/content/dreamt/1.0.1/), [MESA](https://sleepdata.org/datasets/mesa), [SHHS](https://sleepdata.org/datasets/shhs)) to your designated directory.
 
 2. Extract IBI from DREAMT dataset
 ```
-python dataset_preperation/dreamt/dreamt_extract_ibi_se.py
+cd dataset_preparation/dreamt
+python dreamt_extract_ibi_se.py
 ```
 > [!TIP]
 > Update the `root_path` variable in the file to where you stored the DREAMT dataset. The directory should be named `DREAMT_PIBI_SE`.
 
 3. Extract PPG from MESA and ECG from SHHS
 ```
-python dataset_preperation/public_dataset/mesa_extract_ppg.py
-python dataset_preperation/public_dataset/shhs_extract_ecg.py
+cd dataset_preparation/public_datasets
+python mesa_extract_ppg.py
+python shhs_extract_ecg.py
 ```
 > [!TIP]
 > Update the `out_dir` path in the files to where you stored the MESA and SHHS datasets.
@@ -130,7 +132,7 @@ python train_transfer.py --model=sleepconvnet
 
 ### Experiment 2: WatchSleepNet Ablation Study
 
-You can perform ablation experiments on WatchSleepNet using `modeling/watchsleepnet_cv_ablation.py`. Run WatchSleepNet without the TCN and Attention components
+You can perform ablation experiments on WatchSleepNet using `watchsleepnet_cv_ablation.py`. Run WatchSleepNet without the TCN and Attention components
 ```
 python watchsleepnet_cv_ablation.py
 ```
