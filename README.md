@@ -111,42 +111,50 @@ python dataset_preperation/public_dataset/extract_and_save_ibi.py
 ```
 DATASET_DIR = # Enter your dataset root directory
 ```
+Enter the modeling folder for running experiments
+```
+cd modeling/
+```
 
 ### Experiment 1: Transfer Learning
 
 You can perform transfer learning experiments (pre-train on IBI from SHHS+MESA and test on DREAMT IBI) using the `modeling/train_transfer.py`. Run the experiment with WatchSleepNet:
 ```
-python modeling/train_transfer.py
+python train_transfer.py
 ```
 To perform the experiment with other benchmark models (i.e. InsightSleepNet, SleepConvNet), indicate selected model using the `--model` parser argument:
 ```
-python modeling/train_transfer.py --model=insightsleepnet
+python train_transfer.py --model=insightsleepnet
 ```
 ```
-python modeling/train_transfer.py --model=sleepconvnet
+python train_transfer.py --model=sleepconvnet
 ```
 
 ### Experiment 2: WatchSleepNet Ablation Study
 
 You can perform ablation experiments on WatchSleepNet using `modeling/watchsleepnet_cv_ablation.py`. Run WatchSleepNet without the TCN and Attention components
 ```
-python modeling/watchsleepnet_cv_ablation.py
+python watchsleepnet_cv_ablation.py
 ```
 or 
 ```
-python modeling/watchsleepnet_transfer_ablation.py
+python watchsleepnet_transfer_ablation.py
 ```
 > [!TIP]
 > `watchsleepnet_cv_ablation.py` tests performance on using only DREAMT while `watchsleepnet_transfer_ablation.py` performs transfer learning on SHHS+MESA and then tests on DREAMT.
 
-Utilize the argument flags to run either/both the TCN and Attention components
+Utilize the argument flags to run either/both the TCN and Attention layers
 ```
-python modeling/watchsleepnet_cv_ablation.py --use_tcn --use_attention
+python watchsleepnet_cv_ablation.py --use_tcn --use_attention
+```
+Utilize the argument flags to run without the TCN and Attention layers
+```
+python watchsleepnet_cv_ablation.py
 ```
 
 ### Hyperparameter Tuning
 
 You can perform hyperparameter tuning for WatchSleepNet, InsightSleepNet, and SleepConvNet. For example, to tune WatchSleepNet run
 ```
-python modeling/watchsleepnet_hpt.py
+python watchsleepnet_hpt.py
 ```
