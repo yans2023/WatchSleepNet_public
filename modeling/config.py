@@ -8,7 +8,6 @@ import torch.nn as nn
 ### Enter path to your dataset (formatted per README)
 DATASET_DIR = "..."
 
-
 # Define the dynamic file save path generator
 def generate_model_save_path(model_name, dataset_name, version=None, suffix=None):
     """
@@ -28,28 +27,6 @@ def generate_model_save_path(model_name, dataset_name, version=None, suffix=None
 
 # Define configuration settings for each dataset in a dictionary
 dataset_configurations = {
-    "shhs_ibi": {
-        "directory": Path("{}SHHS_IBI".format(DATASET_DIR)),
-        "downsampling_rate": 1,
-        "multiplier": 1,
-        "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
-            model_name=model_name,
-            dataset_name=dataset_name,
-            version=version,
-            suffix=suffix,
-        ),
-    },
-    "mesa_pibi": {
-        "directory": Path("{}MESA_PIBI".format(DATASET_DIR)),
-        "downsampling_rate": 1,
-        "multiplier": 1,
-        "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
-            model_name=model_name,
-            dataset_name=dataset_name,
-            version=version,
-            suffix=suffix,
-        ),
-    },
     "shhs_mesa_ibi": {
         "directory": Path("{}SHHS_MESA_IBI".format(DATASET_DIR)),
         "downsampling_rate": 1,
@@ -89,10 +66,6 @@ dataset_configurations = {
 
 
 class WatchSleepNetConfig:
-    """
-    Configuration for the new WatchSleepNet (previously watchsleepnet2) 
-    with ablation flags for TCN/attention built in.
-    """
     BATCH_SIZE = 16
     LEARNING_RATE = 5e-5
     NUM_EPOCHS = 200
@@ -114,9 +87,6 @@ class WatchSleepNetConfig:
 
     @classmethod
     def to_dict(cls):
-        """
-        Convert the class fields into a dict for setup_model_and_optimizer(...) usage.
-        """
         return {
             # --- General model constructor fields ---
             "num_features": cls.NUM_INPUT_CHANNELS,
@@ -139,9 +109,6 @@ class WatchSleepNetConfig:
         }
     
 class InsightSleepNetConfig:
-    """
-    Configuration for InsightSleepNet, defaulting to the old multi-block architecture.
-    """
     # --- Training hyperparams ---
     BATCH_SIZE = 4
     LEARNING_RATE = 1e-5
@@ -201,11 +168,6 @@ class InsightSleepNetConfig:
 
     @classmethod
     def to_dict(cls):
-        """
-        Convert the class fields into a dict for setup_model_and_optimizer(...).
-        The key 'block_configs' will tell our new parametric InsightSleepNet 
-        to build the 6-block progression (old architecture).
-        """
         return {
             # For the model constructor
             "input_size":       cls.INPUT_SIZE,
@@ -227,9 +189,6 @@ class InsightSleepNetConfig:
         }
     
 class SleepConvNetConfig:
-    """
-    Configuration for SleepConvNet, with updated best hyperparams from HPO.
-    """
     BATCH_SIZE = 16
     LEARNING_RATE = 1e-4
     NUM_EPOCHS = 200
@@ -243,7 +202,7 @@ class SleepConvNetConfig:
     NUM_CLASSES = 3
     DROPOUT_RATE = 0.2
     CONV_LAYERS_CONFIGS = [(1, 32, 3, 1), (32, 64, 3, 1), (64, 128, 3, 1)]
-    DILATION_LAYERS_CONFIGS = None   # or your custom best config
+    DILATION_LAYERS_CONFIGS = None
     USE_RESIDUAL = True
 
     @classmethod
