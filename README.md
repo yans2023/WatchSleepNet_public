@@ -15,7 +15,6 @@ WatchSleepNet is a novel deep learning model designed to improve sleep staging u
 ├── dataset_preparation
 │   ├── dreamt
 │   │   ├── dreamt_extract_ibi_se.py # Run program to extract IBI from downloaded DREAMT dataset
-│   │   └── utils.py
 │   ├── public_datasets
 │   │   ├── mesa_extract_ppg.py # Run program to extract PPG from MESA dataset
 │   │   ├── shhs_extract_ecg.py # Run program to extract ECG from SHHS dataset
@@ -37,7 +36,6 @@ WatchSleepNet is a novel deep learning model designed to improve sleep staging u
 │   ├── optuna_studies # Hyperparameter tuning results
 │   ├── train_cv.py
 │   ├── train_transfer.py # Run program to perform transfer learning experiments
-│   ├── utils.py
 │   ├── watchsleepnet_cv_ablation.py # Run program to perform ablation experiments (DREAMT) on WatchSleepNet
 │   └── watchsleepnet_transfer_ablation.py # Run program to perform ablation experiments (Transfer Learning) on WatchSleepNet
 ├── README.md
