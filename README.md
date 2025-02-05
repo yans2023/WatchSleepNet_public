@@ -69,7 +69,7 @@ pip install -r requirements.txt
 
 ### Dataset Preperation
 
-1. Download the open source datasets ([DREAMT](https://physionet.org/content/dreamt/1.0.1/), [MESA](https://sleepdata.org/datasets/mesa), [SHHS](https://sleepdata.org/datasets/shhs)) to your designated directory.
+1. Download the open source datasets ([DREAMT](https://physionet.org/content/dreamt/2.0.0/), [MESA](https://sleepdata.org/datasets/mesa), [SHHS](https://sleepdata.org/datasets/shhs)) to your designated directory.
 
 2. Extract IBI from DREAMT dataset
 ```
