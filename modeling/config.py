@@ -6,7 +6,7 @@ import torch.nn as nn
 
 
 ### Enter path to your dataset (formatted per README)
-DATASET_DIR = "..."
+DATASET_DIR = "/home/willkewang/Datasets/"
 
 # Define the dynamic file save path generator
 def generate_model_save_path(model_name, dataset_name, version=None, suffix=None):
