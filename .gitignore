@@ -9,3 +9,5 @@ __pycache__
 *.ipynb
 *.ipynb_checkpoints
 *notebooks*
+*_new.py
+*config.py
