@@ -296,19 +296,19 @@ class SleepPPGNetConfig:
     Configuration for SleepPPG-Net, implementing residual convolutional layers and a TCN for sleep staging.
     """
     # Training hyperparameters
-    BATCH_SIZE = 1
+    BATCH_SIZE = 4
     LEARNING_RATE = 1e-4
     NUM_EPOCHS = 200
-    PATIENCE = 20
+    PATIENCE = 10
     WEIGHT_DECAY = 1e-3
     LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
     
     # Model hyperparameters
     NUM_CLASSES = 3
     INPUT_CHANNELS = 1
-    NUM_RES_BLOCKS = 8
+    NUM_RES_BLOCKS = 4
     TCN_LAYERS = 2
-    HIDDEN_DIM = 128
+    HIDDEN_DIM = 32
     DROPOUT_RATE = 0.2
     
     @classmethod
