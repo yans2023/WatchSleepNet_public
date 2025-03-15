@@ -289,3 +289,44 @@ class SleepConvNetConfig:
             "PATIENCE": cls.PATIENCE,
             "LOSS_FN": cls.LOSS_FN,
         }
+    
+
+class SleepPPGNetConfig:
+    """
+    Configuration for SleepPPG-Net, implementing residual convolutional layers and a TCN for sleep staging.
+    """
+    # Training hyperparameters
+    BATCH_SIZE = 1
+    LEARNING_RATE = 1e-4
+    NUM_EPOCHS = 200
+    PATIENCE = 20
+    WEIGHT_DECAY = 1e-3
+    LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
+    
+    # Model hyperparameters
+    NUM_CLASSES = 3
+    INPUT_CHANNELS = 1
+    NUM_RES_BLOCKS = 8
+    TCN_LAYERS = 2
+    HIDDEN_DIM = 128
+    DROPOUT_RATE = 0.2
+    
+    @classmethod
+    def to_dict(cls):
+        """
+        Convert the class fields into a dictionary for model initialization.
+        """
+        return {
+            "input_channels": cls.INPUT_CHANNELS,
+            "num_classes": cls.NUM_CLASSES,
+            "num_res_blocks": cls.NUM_RES_BLOCKS,
+            "tcn_layers": cls.TCN_LAYERS,
+            "hidden_dim": cls.HIDDEN_DIM,
+            "dropout_rate": cls.DROPOUT_RATE,
+            "BATCH_SIZE": cls.BATCH_SIZE,
+            "LEARNING_RATE": cls.LEARNING_RATE,
+            "WEIGHT_DECAY": cls.WEIGHT_DECAY,
+            "NUM_EPOCHS": cls.NUM_EPOCHS,
+            "PATIENCE": cls.PATIENCE,
+            "LOSS_FN": cls.LOSS_FN,
+        }

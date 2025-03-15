@@ -10,6 +10,7 @@ from config import (
     WatchSleepNetConfig,
     InsightSleepNetConfig,
     SleepConvNetConfig,
+    SleepPPGNetConfig,
     dataset_configurations,
 )
 from engine import train, train_and_evaluate, validate_step
@@ -40,7 +41,7 @@ parser.add_argument(
     "--model",
     type=str,
     default="watchsleepnet",  
-    choices=["watchsleepnet", "insightsleepnet", "sleepconvnet"],
+    choices=["watchsleepnet", "insightsleepnet", "sleepconvnet", "sleepppgnet"],
     help="Which model architecture to use."
 )
 parser.add_argument(
@@ -65,6 +66,8 @@ elif args.model == "insightsleepnet":
     model_config_class = InsightSleepNetConfig
 elif args.model == "sleepconvnet":
     model_config_class = SleepConvNetConfig
+elif args.model == "sleepppgnet":
+    model_config_class = SleepPPGNetConfig
 else:
     raise ValueError(f"Unknown model: {args.model}")
 

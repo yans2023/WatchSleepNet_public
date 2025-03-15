@@ -10,9 +10,6 @@ from sklearn.metrics import (
     confusion_matrix
     )
 from data_setup import create_dataloaders_kfolds
-from models.sleepconvnet import SleepConvNet
-from models.watchsleepnet import WatchSleepNet
-from models.insightsleepnet import InsightSleepNet
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import os
 
@@ -723,6 +720,16 @@ def setup_model_and_optimizer(
             use_tcn=model_params.get("use_tcn", True),
             use_attention=model_params.get("use_attention", True),
             num_classes=model_params.get("num_classes", 3),
+        ).to(device)
+    
+    elif model_name == "sleepppgnet":
+        from models.sleepppgnet import SleepPPGNet
+        model = SleepPPGNet(
+            num_classes=model_params.get("num_classes", 4),
+            input_channels=model_params.get("input_channels", 1),
+            num_res_blocks=model_params.get("num_res_blocks", 8),
+            tcn_layers=model_params.get("tcn_layers", 2),
+            hidden_dim=model_params.get("hidden_dim", 128),
         ).to(device)
 
     else:
