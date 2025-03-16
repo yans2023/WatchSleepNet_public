@@ -151,6 +151,7 @@ def compute_metrics(
     # Filter out invalid indices where label is -1
     valid_indices = [i for i, label in enumerate(labels) if label != -1]
     valid_labels = [labels[i] for i in valid_indices]
+    unique_labels = np.unique(valid_labels)
     valid_predictions = [predictions[i] for i in valid_indices]
 
     accuracy = accuracy_score(valid_labels, valid_predictions)
@@ -160,7 +161,12 @@ def compute_metrics(
     if print_conf_matrix:
         cm = confusion_matrix(valid_labels, valid_predictions)
         if task == "sleep_staging":
-            class_names = ["Wake", "NREM", "REM"]
+            if len(unique_labels) == 3:
+                class_names = ["Wake", "NREM", "REM"]
+            elif len(unique_labels) == 4:
+                class_names = ["Wake", "Light", "Deep", "REM"]
+            else:
+                print("ERROR in number of classes: {}; Not implemented".format(len(unique_labels)))
         else:
             class_names = ["Wake", "Sleep"]
 
@@ -172,7 +178,12 @@ def compute_metrics(
 
     if testing:
         valid_probabilities = [pred_probs[i] for i in valid_indices]
-        rem_f1 = f1_score(valid_labels, valid_predictions, labels=[2], average="macro")
+        if len(unique_labels) == 3:
+            rem_f1 = f1_score(valid_labels, valid_predictions, labels=[2], average="macro")
+        elif len(unique_labels) == 4:
+            rem_f1 = f1_score(valid_labels, valid_predictions, labels=[3], average="macro")
+        else:
+            print("ERROR in number of classes: {}; Not implemented".format(len(unique_labels)))
         if task == "sleep_wake":
             auroc = roc_auc_score(valid_labels, valid_probabilities, average="macro")
         elif task == "sleep_staging":
@@ -285,10 +296,19 @@ def train_step(model, dataloader, loss_fn, optimizer, device, model_name="watchs
     all_predictions = []
     all_probabilities = []
     total_batches = 0
-
-    for batch_idx, (X, y, lengths, AHIs) in enumerate(
-        tqdm(dataloader, desc="Training Batch", leave=False)
+    
+    for batch_idx, batch_data in enumerate(
+        tqdm(dataloader, desc=f"Training Batch", leave=False)
     ):
+        # Check how many items are returned by the dataloader
+        if len(batch_data) == 3:
+            X, y, lengths = batch_data
+            AHIs = None
+        elif len(batch_data) == 4:
+            X, y, lengths, AHIs = batch_data
+        else:
+            raise ValueError(f"Batch has unexpected number of items: {len(batch_data)}")
+
         try:
             optimizer.zero_grad()
 
@@ -681,6 +701,16 @@ def setup_model_and_optimizer(
             use_attention=model_params.get("use_attention", True),
             num_classes=model_params.get("num_classes", 3),
         ).to(device)
+    
+    elif model_name == "sleepppgnet":
+        from models.sleepppgnet import SleepPPGNet
+        model = SleepPPGNet(
+            num_classes=model_params.get("num_classes", 4),
+            input_channels=model_params.get("input_channels", 1),
+            num_res_blocks=model_params.get("num_res_blocks", 8),
+            tcn_layers=model_params.get("tcn_layers", 2),
+            hidden_dim=model_params.get("hidden_dim", 128),
+        ).to(device)
 
     else:
         raise ValueError(f"Unknown model_name: {model_name}")
@@ -691,15 +721,16 @@ def setup_model_and_optimizer(
         model.load_state_dict(torch.load(saved_model_path, map_location=device))
 
     # 3) Optionally freeze layers (partial or full)
-    if freeze_layers:
-        for name, param in model.named_parameters():
-            # Example partial freeze logic:
-            # if "classifier" in name or "attention" in name or "tcn" in name:
-            #     param.requires_grad = True
-            # else:
-            #     param.requires_grad = False
-            param.requires_grad = False  # or your custom logic
-        print("[setup_model_and_optimizer] Freezing layers as per 'freeze_layers=True'")
+    # if freeze_layers:
+    #     for name, param in model.named_parameters():
+    #         # partial freeze logic:
+    #         # if "classifier" in name or "attention" in name or "lstm" in name:
+    #         if "classifier" in name:
+    #             param.requires_grad = True
+    #         else:
+    #             param.requires_grad = False
+    #         # param.requires_grad = False  # or your custom logic
+    #     print("[setup_model_and_optimizer] Freezing layers as per 'freeze_layers=True'")
 
     else:
         # Ensure all parameters are trainable
@@ -946,18 +977,20 @@ def aggregate_and_print_results(
         print(f"REM F1 Score: {rem_f1:.4f}")
         print(f"AUROC: {auroc:.4f}")
 
+        ## This can be turned on if you ahi for each of the subjects
+        ## Otherwise only a full test set metrics will be printed
         # 3) Compute metrics per AHI category
-        print("\nMetrics per AHI Category:")
-        metrics_per_category = compute_metrics_per_ahi_category(
-            true_labels,
-            predicted_labels,
-            predicted_probs,
-            ahi_values,
-        )
-        for category, sub_metrics in metrics_per_category.items():
-            print(f"\nMetrics for AHI Category '{category}':")
-            for metric_name, val in sub_metrics.items():
-                print(f"  {metric_name}: {val:.4f}")
+        # print("\nMetrics per AHI Category:")
+        # metrics_per_category = compute_metrics_per_ahi_category(
+        #     true_labels,
+        #     predicted_labels,
+        #     predicted_probs,
+        #     ahi_values,
+        # )
+        # for category, sub_metrics in metrics_per_category.items():
+        #     print(f"\nMetrics for AHI Category '{category}':")
+        #     for metric_name, val in sub_metrics.items():
+        #         print(f"  {metric_name}: {val:.4f}")
 
         return overall_acc, overall_f1, overall_kappa, rem_f1, auroc
     else:

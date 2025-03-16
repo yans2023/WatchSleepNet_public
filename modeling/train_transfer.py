@@ -13,9 +13,10 @@ from config import (
     dataset_configurations,
 )
 from engine import train, train_and_evaluate, validate_step, setup_model_and_optimizer
+import time
 
 warnings.filterwarnings("ignore", category=UserWarning)
-
+start_time = time.time()
 seed = 0
 np.random.seed(seed)
 random.seed(seed)
@@ -23,11 +24,15 @@ torch.manual_seed(seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-NUM_WORKERS = os.cpu_count() // 2
+NUM_WORKERS = 12
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-TRAIN_DATASET = "shhs_mesa_ibi"
-TEST_DATASET = "dreamt_pibi"
+# TRAIN_DATASET = "shhs_mesa_ibi"
+# TEST_DATASET = "dreamt_pibi"
+
+# For ppg training and testing, should only work on MESA pretraining and DREAMT finetuning
+TRAIN_DATASET = "mesa_ppg"
+TEST_DATASET = "dreamt_ppg"
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -63,13 +68,13 @@ model_config_dict = model_config_class.to_dict()
 model_save_path = train_config["get_model_save_path"](
     model_name=args.model, 
     dataset_name=TRAIN_DATASET, 
-    version="vtrial"
+    version="ablation_separate_pretraining"
 )
 
 finetune_save_path = test_config["get_model_save_path"](
     model_name=args.model, 
     dataset_name=TEST_DATASET, 
-    version="vtrial"
+    version="ablation_separate_pretraining"
 )
 
 print("Pretrain/Initial Model Save Path:", model_save_path)
@@ -108,7 +113,6 @@ else:
         saved_model_path=None,
         learning_rate=model_config_class.LEARNING_RATE,
         weight_decay=model_config_class.WEIGHT_DECAY,
-        freeze_layers=False,
     )
 
     # After training, the best checkpoint should have already been saved at model_save_path;
@@ -129,6 +133,8 @@ else:
         val_loss, val_acc, val_f1, val_kappa, val_rem_f1, val_auroc = validate_step(
             pretrained_model, val_dataloader, loss_fn, DEVICE
         )
+        total_params = sum(p.numel() for p in pretrained_model.parameters() if p.requires_grad)
+        print(f"Total trainable parameters: {total_params}")
         print("\n" + "="*80)
         print("Best Pretraining Validation Results")
         print("="*80)
@@ -178,3 +184,8 @@ print(f"Overall F1:  {overall_f1:.3f}")
 print(f"Overall Kappa: {overall_kappa:.3f}")
 print(f"REM F1 Score: {rem_f1:.3f}")
 print(f"AUROC: {auroc:.3f}")
+
+end_time = time.time()
+elapsed_time = end_time - start_time
+
+print(f"Elapsed time: {elapsed_time:.4f} seconds")

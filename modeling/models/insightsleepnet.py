@@ -237,7 +237,13 @@ class InsightSleepNet(nn.Module):
         activation=nn.ReLU(),
     ):
         super().__init__()
-
+        self.local_att_conv = nn.Conv1d(
+            in_channels=1, 
+            out_channels=1, 
+            kernel_size=1024,   # paper used bigger e.g. 7168
+            padding=1023,       # kernel_size - 1 => same length
+            stride=1
+        )
         # 1) Initial conv
         self.initial_conv = nn.Conv1d(1, initial_conv_out, kernel_size=40, stride=20)
         self.relu = nn.ReLU()
@@ -286,6 +292,17 @@ class InsightSleepNet(nn.Module):
         b, t, s = x.shape
         # Flatten => (B, 1, T*S)
         x = x.view(b, 1, t*s)
+
+        # added input attention
+        att = self.local_att_conv(x)
+        att = torch.sigmoid(att)
+
+        # If att is longer than x, slice down
+        if att.size(2) > x.size(2):
+            att = att[:, :, : x.size(2)]
+
+        x = x * att  # multiply input by mask
+
         x = self.initial_conv(x)
         x = self.relu(x)
 

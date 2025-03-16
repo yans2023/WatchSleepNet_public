@@ -10,16 +10,21 @@ import optuna
 from optuna.exceptions import TrialPruned
 
 from data_setup import create_dataloaders_kfolds
-from models.sleepconvnet import SleepConvNet
-from config import SleepConvNetConfig, dataset_configurations
+from models.sleepppgnet import SleepPPGNet
+from config import SleepPPGNetConfig, dataset_configurations
 from engine import train_cross_validate_hpo, train_cross_validate
 
+# ----------------------- Logging Configuration -----------------------
+
+# Configure logging to output to console with a specific format
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
+
+# ----------------------- Utility Functions -----------------------
 
 def set_seed(seed: int = 0):
     """
@@ -31,7 +36,7 @@ def set_seed(seed: int = 0):
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    torch.cuda.manual_seed_all(seed)  # If using multi-GPU.
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     logger.info(f"Seed set to {seed} for reproducibility.")
@@ -56,7 +61,7 @@ def parse_arguments() -> argparse.Namespace:
     Returns:
         argparse.Namespace: Parsed arguments.
     """
-    parser = argparse.ArgumentParser(description="Hyperparameter Optimization for SleepConvNet")
+    parser = argparse.ArgumentParser(description="Hyperparameter Optimization for SleepPPGNet")
 
     parser.add_argument(
         "--train_dataset",
@@ -83,28 +88,30 @@ def parse_arguments() -> argparse.Namespace:
     return args
 
 
-def initialize_model(model_params: dict, device: torch.device) -> SleepConvNet:
+def initialize_model(model_params: dict, device: torch.device) -> SleepPPGNet:
     """
-    Initialize the SleepConvNet model with given parameters.
+    Initialize the SleepPPGNet model with given parameters.
 
     Args:
-        model_params (dict): Configuration parameters for SleepConvNet.
+        model_params (dict): Configuration parameters for SleepPPGNet.
         device (torch.device): Computation device.
 
     Returns:
-        SleepConvNet: Initialized SleepConvNet model.
+        SleepPPGNet: Initialized SleepPPGNet model.
     """
-    model = SleepConvNet(
-        input_size=model_params['input_size'],
-        target_size=model_params['target_size'],
-        num_segments=model_params['num_segments'],
+    model = SleepPPGNet(
+        input_channels=model_params['input_channels'],
         num_classes=model_params['num_classes'],
+        num_res_blocks=model_params['num_res_blocks'],
+        tcn_layers=model_params['tcn_layers'],
+        hidden_dim=model_params['hidden_dim'],
         dropout_rate=model_params['dropout_rate'],
-        conv_layers_configs=model_params['conv_layers_configs'],
-        dilation_layers_configs=model_params['dilation_layers_configs'],
     ).to(device)
-    logger.info("Initialized SleepConvNet model.")
+    logger.info("Initialized SleepPPGNet model.")
     return model
+
+
+# ----------------------- Objective Function -----------------------
 
 def objective(trial, config: dict, dataloader_folds: list, device: torch.device, train_config: dict, model_name: str):
     """
@@ -121,40 +128,61 @@ def objective(trial, config: dict, dataloader_folds: list, device: torch.device,
     Returns:
         float: The metric to maximize (e.g., Cohen's Kappa).
     """
-    dropout_rate = 0.2  # Can be tuned as well
-
-    # Choose conv_layers_configs
-    conv_layers_configs = trial.suggest_categorical(
-        "conv_layers_configs",
-        [
-            [(1, 32, 3, 1), (32, 64, 3, 1), (64, 128, 3, 1)],  # final_in_channels=128
-            [(1, 32, 3, 1), (32, 48, 3, 1), (48, 64, 3, 1)],  # final_in_channels=64
-            [(1, 8, 3, 1), (8, 16, 3, 1), (16, 32, 3, 1)],  # final_in_channels=32
-        ],
-    )
-
-    final_in_channels = conv_layers_configs[-1][1]
-
-    # Choose dilation_layers_configs deterministically based on final_in_channels
-    if final_in_channels == 128:
-        dilation_layers_configs = [(128, 128, 7, d) for d in [2, 4, 8, 16, 32]]
-    elif final_in_channels == 64:
-        dilation_layers_configs = [(64, 64, 7, d) for d in [2, 4, 8]]
-    elif final_in_channels == 32:
-        dilation_layers_configs = [(32, 32, 7, d) for d in [2, 4]]
-
-    learning_rate = trial.suggest_loguniform("learning_rate", 1e-5, 1e-2)
+    # Suggest hyperparameters
+    batch_size = trial.suggest_categorical("batch_size", [1, 2])
+    hidden_dim = trial.suggest_categorical("hidden_dim", [16, 32, 64])
+    num_res_blocks = trial.suggest_categorical("num_res_blocks", [2, 4, 6])
+    tcn_layers = trial.suggest_categorical("tcn_layers", [1, 2])
+    dropout_rate = trial.suggest_uniform("dropout_rate", 0.1, 0.5)
+    
+    # Learning rate and weight decay
+    learning_rate = trial.suggest_loguniform("learning_rate", 1e-5, 1e-3)
     weight_decay = trial.suggest_loguniform("weight_decay", 1e-6, 1e-3)
 
+    # Memory debugging information
+    logger.info(f"Trial config: batch_size={batch_size}, hidden_dim={hidden_dim}, "
+                f"num_res_blocks={num_res_blocks}, tcn_layers={tcn_layers}")
+    
+    # Update dataloader batch size
+    for i in range(len(dataloader_folds)):
+        train_loader, val_loader, test_loader = dataloader_folds[i]
+        # Recreate dataloaders with new batch size if different from original
+        if train_loader.batch_size != batch_size:
+            train_dataset = train_loader.dataset
+            val_dataset = val_loader.dataset
+            test_dataset = test_loader.dataset
+            
+            new_train_loader = torch.utils.data.DataLoader(
+                train_dataset, 
+                batch_size=batch_size,
+                shuffle=True,
+                num_workers=train_loader.num_workers,
+                pin_memory=True
+            )
+            new_val_loader = torch.utils.data.DataLoader(
+                val_dataset, 
+                batch_size=batch_size,
+                shuffle=False,
+                num_workers=val_loader.num_workers,
+                pin_memory=True
+            )
+            new_test_loader = torch.utils.data.DataLoader(
+                test_dataset, 
+                batch_size=batch_size,
+                shuffle=False,
+                num_workers=test_loader.num_workers,
+                pin_memory=True
+            )
+            dataloader_folds[i] = (new_train_loader, new_val_loader, new_test_loader)
+
     def model_init():
-        return SleepConvNet(
-            input_size=750,
-            target_size=256,
-            num_segments=1100,
+        return SleepPPGNet(
+            input_channels=1,
             num_classes=3,
+            num_res_blocks=num_res_blocks,
+            tcn_layers=tcn_layers,
+            hidden_dim=hidden_dim,
             dropout_rate=dropout_rate,
-            conv_layers_configs=conv_layers_configs,
-            dilation_layers_configs=dilation_layers_configs,
         ).to(device)
 
     try:
@@ -176,6 +204,15 @@ def objective(trial, config: dict, dataloader_folds: list, device: torch.device,
                 ),
             )
         )
+    except RuntimeError as e:
+        if "CUDA out of memory" in str(e):
+            logger.warning(f"CUDA OOM error with batch_size={batch_size}, hidden_dim={hidden_dim}, "
+                          f"num_res_blocks={num_res_blocks}, tcn_layers={tcn_layers}")
+            torch.cuda.empty_cache()
+            raise TrialPruned()
+        else:
+            logger.error(f"An error occurred during training: {e}")
+            raise TrialPruned()
     except Exception as e:
         logger.error(f"An error occurred during training: {e}")
         raise TrialPruned()
@@ -184,10 +221,20 @@ def objective(trial, config: dict, dataloader_folds: list, device: torch.device,
     logger.info(f"Trial completed with overall_kappa: {overall_kappa}")
     return overall_kappa
 
+
+# ----------------------- Main Function -----------------------
+
 def main():
+    # Suppress specific warnings
     warnings.filterwarnings("ignore", category=UserWarning)
+
+    # Set seed for reproducibility
     set_seed(seed=0)
+
+    # Determine computation device
     device = get_device()
+
+    # Parse command-line arguments
     args = parse_arguments()
 
     # Retrieve configuration based on the dataset argument
@@ -196,7 +243,11 @@ def main():
         logger.error(f"Configuration for dataset '{args.train_dataset}' not found.")
         raise ValueError(f"Configuration for dataset '{args.train_dataset}' not found.")
 
-    model_config = SleepConvNetConfig.to_dict()
+    # Add dataset name to train_config for use in objective function
+    train_config["dataset"] = args.train_dataset
+
+    # Convert model configuration to dictionary
+    model_config = SleepPPGNetConfig.to_dict()
 
     # Create folds for cross-validation
     dataloader_folds = create_dataloaders_kfolds(
@@ -204,7 +255,7 @@ def main():
         dataset=args.train_dataset,
         num_folds=5,
         val_ratio=0.2,
-        batch_size=model_config.get('BATCH_SIZE', 16),
+        batch_size=model_config.get('BATCH_SIZE', 1),  # Start with small batch size
         num_workers=os.cpu_count() // 2,
         multiplier=train_config.get("multiplier", 1),
         downsampling_rate=train_config.get("downsampling_rate", 1),
@@ -224,7 +275,7 @@ def main():
             dataloader_folds=dataloader_folds,
             device=device,
             train_config=train_config,
-            model_name="sleepconvnet",
+            model_name="sleepppgnet",
         ),
         n_trials=50,  # Adjust the number of trials as needed
         timeout=3600,  # Optional: Set a timeout in seconds
@@ -239,9 +290,20 @@ def main():
     for key, value in trial.params.items():
         logger.info(f"    {key}: {value}")
 
+    # Update SleepPPGNetConfig with best parameters
+    logger.info("Best parameters for SleepPPGNet:")
+    logger.info(f"batch_size = {trial.params.get('batch_size', 1)}")
+    logger.info(f"hidden_dim = {trial.params.get('hidden_dim', 32)}")
+    logger.info(f"num_res_blocks = {trial.params.get('num_res_blocks', 4)}")
+    logger.info(f"tcn_layers = {trial.params.get('tcn_layers', 1)}")
+    logger.info(f"dropout_rate = {trial.params.get('dropout_rate', 0.2)}")
+    logger.info(f"learning_rate = {trial.params.get('learning_rate', 1e-4)}")
+    logger.info(f"weight_decay = {trial.params.get('weight_decay', 1e-3)}")
+
     os.makedirs("optuna_studies", exist_ok=True)
-    study.trials_dataframe().to_csv("optuna_studies/sleepconvnet_hpt_results.csv", index=False)
-    logger.info("Optuna study results saved to 'optuna_studies/sleepconvnet_hpt_results.csv'.")
+    study.trials_dataframe().to_csv("optuna_studies/sleepppgnet_hpt_results.csv", index=False)
+    logger.info("Optuna study results saved to 'optuna_studies/sleepppgnet_hpt_results.csv'.")
+
 
 if __name__ == "__main__":
     main()

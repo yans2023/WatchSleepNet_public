@@ -44,7 +44,10 @@ class SSDataset(Dataset):
         ibi = data["data"].flatten() * self.multiplier # Remove the second dimension
         labels = data["stages"]
         fs = data["fs"].item()
-        ahi = data["ahi"].item()
+        try:
+            ahi = data["ahi"].item()
+        except:
+            ahi = 0
 
         # If necessary downsample to 25Hz
         # but extract dataset is in 25Hz already, so need not downsample in normal cases
@@ -77,13 +80,15 @@ class SSDataset(Dataset):
             return ibi, labels, num_segments, ahi
 
     def remap_labels(self, labels, task):
-        # 0=Wake, 1=N1, 2=N2, 3=N3, 4=REM, 5=Movement (mapped to -1 to ignore in loss computation)
-        # simplify to do 3-stage classification
+        # 0=Wake, 1=N1, 2=N2, 3=N3, 4=REM, 5=Movement => mapped to -1, plus -1 => -1 for out-of-range
         if task == "sleep_staging":
             label_map = {0:0, 1:1, 2:1, 3:1, 4:2, 5:-1, -1:-1}
         elif task == "sleep_wake":
             label_map = {0:0, 1:1, 2:1, 3:1, 4:1, 5:-1, -1:-1}
-        remapped_labels = np.vectorize(label_map.get)(labels)
+
+        # If a label is not in label_map keys, default to -1
+        # e.g., label_map.get(x, -1) means "use label_map[x] if it exists, otherwise -1."
+        remapped_labels = np.vectorize(lambda x: label_map.get(x, -1))(labels)
         return remapped_labels
 
     @staticmethod

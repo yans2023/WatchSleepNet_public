@@ -4,7 +4,6 @@ import torch
 import sys
 import torch.nn as nn
 
-
 ### Enter path to your dataset (formatted per README)
 DATASET_DIR = "/home/willkewang/Datasets/"
 
@@ -44,6 +43,60 @@ dataset_configurations = {
             suffix=suffix,
         ),
     },
+    "mesa_pibi": {
+        "directory": Path("{}MESA_PIBI".format(DATASET_DIR)),
+        "downsampling_rate": 1,
+        "multiplier": 1,
+        "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
+            model_name=model_name,
+            dataset_name=dataset_name,
+            version=version,
+            suffix=suffix,
+        ),
+        "dd_analysis_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
+            model_name=model_name,
+            dataset_name=dataset_name,
+            version=version,
+            suffix=suffix,
+        ),
+    },
+    "shhs_ibi": {
+        "directory": Path("{}SHHS_IBI".format(DATASET_DIR)),
+        "downsampling_rate": 1,
+        "multiplier": 1,
+        "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
+            model_name=model_name,
+            dataset_name=dataset_name,
+            version=version,
+            suffix=suffix,
+        ),
+        "dd_analysis_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
+            model_name=model_name,
+            dataset_name=dataset_name,
+            version=version,
+            suffix=suffix,
+        ),
+    },
+    # TODO
+    "mesa_ppg": {
+        # "directory": Path("{}SHHS_MESA_IBI".format(DATASET_DIR)),
+        # "directory": Path("{}MESA_PPG".format(DATASET_DIR)),
+        "directory": Path("/mnt/linux_partition/MESA_PPG/"),
+        "downsampling_rate": 1,
+        "multiplier": 1,
+        "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
+            model_name=model_name,
+            dataset_name=dataset_name,
+            version=version,
+            suffix=suffix,
+        ),
+        "dd_analysis_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
+            model_name=model_name,
+            dataset_name=dataset_name,
+            version=version,
+            suffix=suffix,
+        ),
+    },
     "dreamt_pibi": {
         "directory": Path("{}DREAMT_PIBI_SE".format(DATASET_DIR)),
         "downsampling_rate": 1,
@@ -62,28 +115,47 @@ dataset_configurations = {
             suffix=suffix,
         ),
     },
+    "dreamt_ppg": {
+        "directory": Path("{}DREAMT_PPG".format(DATASET_DIR)),
+        "downsampling_rate": 1,
+        "multiplier": 1,
+        "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
+            model_name=model_name,
+            dataset_name=dataset_name,
+            version=version,
+            suffix=suffix,
+        ),
+        "dd_analysis_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
+            model_name=model_name,
+            dataset_name=dataset_name,
+            version=version,
+            suffix=suffix,
+        ),
+    },
 }
 
 
 class WatchSleepNetConfig:
     BATCH_SIZE = 16
-    LEARNING_RATE = 5e-5
+    LEARNING_RATE = 5e-3
     NUM_EPOCHS = 200
-    PATIENCE = 50
-    WEIGHT_DECAY = 1e-4
+    PATIENCE = 20
+    WEIGHT_DECAY = 1e-5
     LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
 
     NUM_INPUT_CHANNELS = 1         # e.g., raw input channels
     NUM_CHANNELS = 256             # 'num_channels'
     KERNEL_SIZE = 5
     HIDDEN_DIM = 256
-    NUM_HEADS = 32
+    NUM_HEADS = 16
     TCN_LAYERS = 3
     NUM_LAYERS = 4
-    NUM_CLASSES = 3
+    NUM_CLASSES = 3                 # W / N / R
+    # NUM_CLASSES = 4                 # W / L / D / R
 
     USE_TCN = True
     USE_ATTENTION = True
+    USE_LSTM = True
 
     @classmethod
     def to_dict(cls):
@@ -111,8 +183,8 @@ class WatchSleepNetConfig:
 class InsightSleepNetConfig:
     # --- Training hyperparams ---
     BATCH_SIZE = 4
-    LEARNING_RATE = 1e-5
-    NUM_EPOCHS = 100
+    LEARNING_RATE = 1e-4
+    NUM_EPOCHS = 200
     PATIENCE = 20
     WEIGHT_DECAY = 1e-4
     LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
@@ -121,7 +193,7 @@ class InsightSleepNetConfig:
     # --- Old Architecture Defaults (multi-block) ---
     INPUT_SIZE = 750    # Each segment length
     OUTPUT_SIZE = 3     # e.g., number of classes
-    DROPOUT_RATE = 0.2
+    DROPOUT_RATE = 0.4
     ACTIVATION = nn.ReLU()
 
     BLOCK_CONFIGS = [
@@ -190,7 +262,7 @@ class InsightSleepNetConfig:
     
 class SleepConvNetConfig:
     BATCH_SIZE = 16
-    LEARNING_RATE = 1e-4
+    LEARNING_RATE = 1e-3
     NUM_EPOCHS = 200
     PATIENCE = 20
     WEIGHT_DECAY = 1e-3
@@ -221,6 +293,47 @@ class SleepConvNetConfig:
             "dilation_layers_configs": cls.DILATION_LAYERS_CONFIGS,
             "use_residual": cls.USE_RESIDUAL,
             # --- Training hyperparams ---
+            "BATCH_SIZE": cls.BATCH_SIZE,
+            "LEARNING_RATE": cls.LEARNING_RATE,
+            "WEIGHT_DECAY": cls.WEIGHT_DECAY,
+            "NUM_EPOCHS": cls.NUM_EPOCHS,
+            "PATIENCE": cls.PATIENCE,
+            "LOSS_FN": cls.LOSS_FN,
+        }
+
+
+class SleepPPGNetConfig:
+    """
+    Configuration for SleepPPG-Net, implementing residual convolutional layers and a TCN for sleep staging.
+    """
+    # Training hyperparameters
+    BATCH_SIZE = 4
+    LEARNING_RATE = 1e-4
+    NUM_EPOCHS = 200
+    PATIENCE = 20
+    WEIGHT_DECAY = 1e-3
+    LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
+    
+    # Model hyperparameters
+    NUM_CLASSES = 3
+    INPUT_CHANNELS = 1
+    NUM_RES_BLOCKS = 4
+    TCN_LAYERS = 2
+    HIDDEN_DIM = 32
+    DROPOUT_RATE = 0.2
+    
+    @classmethod
+    def to_dict(cls):
+        """
+        Convert the class fields into a dictionary for model initialization.
+        """
+        return {
+            "input_channels": cls.INPUT_CHANNELS,
+            "num_classes": cls.NUM_CLASSES,
+            "num_res_blocks": cls.NUM_RES_BLOCKS,
+            "tcn_layers": cls.TCN_LAYERS,
+            "hidden_dim": cls.HIDDEN_DIM,
+            "dropout_rate": cls.DROPOUT_RATE,
             "BATCH_SIZE": cls.BATCH_SIZE,
             "LEARNING_RATE": cls.LEARNING_RATE,
             "WEIGHT_DECAY": cls.WEIGHT_DECAY,

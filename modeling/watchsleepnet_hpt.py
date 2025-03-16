@@ -220,6 +220,10 @@ def main():
     logger.info("  Params: ")
     for key, value in best_trial.params.items():
         logger.info(f"    {key}: {value}")
+    
+    os.makedirs("optuna_studies", exist_ok=True)
+    study.trials_dataframe().to_csv("optuna_studies/watchsleepnet_hpt_results.csv", index=False)
+    logger.info("Optuna study results saved to 'optuna_studies/watchsleepnet_hpt_results.csv'.")
 
 if __name__ == "__main__":
     main()
