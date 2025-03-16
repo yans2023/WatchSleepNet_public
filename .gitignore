@@ -11,3 +11,4 @@ __pycache__
 *notebooks*
 *_new.py
 *config.py
+*optuna_studies*
