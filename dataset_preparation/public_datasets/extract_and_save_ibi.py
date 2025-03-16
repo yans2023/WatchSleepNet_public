@@ -6,7 +6,7 @@ import logging
 from multiprocessing import Pool, cpu_count
 from scipy.signal import find_peaks
 import pandas as pd
-
+from scipy.signal import resample_poly
 
 logging.basicConfig(level=logging.INFO)
 
@@ -75,18 +75,20 @@ def process_file(
     EXACT old code approach:
       - 'biosppy' for ECG (SHHS)
       - 'neurokit' for PPG (MESA)
-    Then it downsamples from fs to 25 Hz via integer slicing,
-    and saves the new NPZ file (IBI float64, fs=25, downsampled stages, AHI).
+    Then it downsamples from fs to 25 Hz via a smarter approach:
+      - integer slicing if original_fs is a multiple of 25
+      - polyphase resampling (scipy.signal.resample_poly) otherwise.
+    Saves the new NPZ file (IBI float64, fs=25, downsampled stages, AHI).
     """
     file_path = os.path.join(in_dir, filename)
 
     try:
         data = np.load(file_path)
         signal = data["data"].flatten()  # original waveform
-        original_fs = int(data[fs_col].item())  # e.g., 125 or 250 or ...
+        original_fs = int(data[fs_col].item())  # e.g., 125, 250, 256, etc.
         stages = data["stages"]
 
-        # Compute IBI from old code approach
+        # Compute IBI using the old code approach
         if method == "biosppy":  # ECG for SHHS
             ibi = calculate_ibi_ecg(signal, original_fs)
         elif method == "neurokit":  # PPG for MESA
@@ -102,10 +104,9 @@ def process_file(
             file_id = filename.split("-")[1].split(".npz")[0].lstrip("0")
         else:  # MESA or other
             if filename.startswith("mesa-"):
-                # Remove the prefix "mesa_" and the suffix ".npz"
+                # Remove the prefix "mesa-" and the suffix ".npz"
                 file_id = filename[len("mesa-") : -len(".npz")]
             else:
-                # Fallback if "mesa_" is not found
                 file_id = filename.split(".npz")[0]
 
         # Retrieve AHI from info_df
@@ -115,26 +116,30 @@ def process_file(
             return
         ahi = float(matching_rows[ahi_col].values[0])
 
-        # Integer-slice downsampling to 25 Hz (old approach).
-        # Assuming original_fs is a multiple of 25
-        factor = int(original_fs // 25)
-        ibi_ds = ibi[::factor]
-        stages_ds = stages[::factor]
+        # Smarter downsampling to 25 Hz
+        target_fs = 25
+        if original_fs % target_fs == 0:
+            # When original_fs is an integer multiple of 25, simple slicing works
+            factor = int(original_fs // target_fs)
+            ibi_ds = ibi[::factor]
+            stages_ds = stages[::factor]
+        else:
+            # For non-integer resampling factors, use polyphase resampling
+            ibi_ds = resample_poly(ibi, target_fs, original_fs)
+            stages_ds = resample_poly(stages, target_fs, original_fs)
 
-        # 5) Construct the output filename
+        # Construct the output filename
         if dataset_name == "MESA":
-            # Force output name "mesa-xxxx.npz"
             out_filename = f"mesa-{file_id}.npz"
         else:
-            # For SHHS (or others), we keep original filename
             out_filename = filename
 
-        # 6) Save file
+        # Save the processed file
         out_path = os.path.join(out_dir, out_filename)
         np.savez(
             out_path,
             data=ibi_ds.astype(np.float64),
-            fs=25,
+            fs=target_fs,
             stages=stages_ds,
             ahi=ahi
         )
