@@ -15,7 +15,7 @@ torch.manual_seed(seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-NUM_WORKERS = os.cpu_count() // 2
+NUM_WORKERS = 8
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 parser = argparse.ArgumentParser()
@@ -25,7 +25,7 @@ parser.add_argument(
     default="shhs_mesa_ibi",
     choices=[
         "shhs_ibi",
-        "mesa_eibi",
+        "mesa_ppg",
         "mesa_pibi",
         "shhs_mesa_ibi",
     ],

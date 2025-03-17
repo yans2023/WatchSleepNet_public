@@ -10,6 +10,7 @@ from config import (
     WatchSleepNetConfig,
     InsightSleepNetConfig,
     SleepConvNetConfig,
+    SleepPPGNetConfig,
     dataset_configurations,
 )
 from engine import train, train_and_evaluate, validate_step, setup_model_and_optimizer
@@ -24,22 +25,22 @@ torch.manual_seed(seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-NUM_WORKERS = 12
+NUM_WORKERS = 8
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# TRAIN_DATASET = "shhs_mesa_ibi"
-# TEST_DATASET = "dreamt_pibi"
+TRAIN_DATASET = "shhs_mesa_ibi"
+TEST_DATASET = "dreamt_pibi"
 
 # For ppg training and testing, should only work on MESA pretraining and DREAMT finetuning
-TRAIN_DATASET = "mesa_ppg"
-TEST_DATASET = "dreamt_ppg"
+# TRAIN_DATASET = "mesa_ppg"
+# TEST_DATASET = "dreamt_ppg"
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--model",
     type=str,
     default="watchsleepnet",  
-    choices=["watchsleepnet", "insightsleepnet", "sleepconvnet"],
+    choices=["watchsleepnet", "insightsleepnet", "sleepconvnet", "sleepppgnet"],
     help="Which model architecture to use."
 )
 parser.add_argument(
@@ -60,6 +61,8 @@ elif args.model == "insightsleepnet":
     model_config_class = InsightSleepNetConfig
 elif args.model == "sleepconvnet":
     model_config_class = SleepConvNetConfig
+elif args.model == "sleepppgnet":
+    model_config_class = SleepPPGNetConfig
 else:
     raise ValueError(f"Unknown model: {args.model}")
 

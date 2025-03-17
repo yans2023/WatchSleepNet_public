@@ -2,13 +2,13 @@ import os
 from tqdm import tqdm
 from utils import read_edf_data, save_to_npz
 
-out_dir = ".../SHHS_ECG/"  # TO fill in: path to save the SHHS extract raw ECG data, this folder needs to be created before running this file
+out_dir = "/mnt/linux_partition/SHHS_ECG/"  # TO fill in: path to save the SHHS extract raw ECG data, this folder needs to be created before running this file
 
 def process_shhs(out_dir):
     # TO fill in: path to the SHHS dataset EDF raw data files
     shhs_dirs = [
-        ".../shhs/polysomnography/edfs/shhs1/",
-        ".../shhs/polysomnography/edfs/shhs2/"
+        "/mnt/linux_partition/shhs/polysomnography/edfs/shhs1/",
+        "/mnt/linux_partition/shhs/polysomnography/edfs/shhs2/"
     ]
     for shhs_dir in shhs_dirs:
         # Extract the folder name (shhs1 or shhs2)

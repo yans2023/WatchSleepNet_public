@@ -447,18 +447,18 @@ def main():
 
     # Hyperparameter sets
     hparam_sets = [
-        # {
-        #     "num_classes": 3,
-        #     "conv1_out": 16, "conv1_ks": 3,
-        #     "conv2_out": 32, "conv2_ks": 3,
-        #     "conv3_out": 64, "conv3_ks": 3,
-        # },
-        # {
-        #     "num_classes": 3,
-        #     "conv1_out": 32, "conv1_ks": 5,
-        #     "conv2_out": 64, "conv2_ks": 5,
-        #     "conv3_out": 128, "conv3_ks": 3,
-        # },
+        {
+            "num_classes": 3,
+            "conv1_out": 16, "conv1_ks": 3,
+            "conv2_out": 32, "conv2_ks": 3,
+            "conv3_out": 64, "conv3_ks": 3,
+        },
+        {
+            "num_classes": 3,
+            "conv1_out": 32, "conv1_ks": 5,
+            "conv2_out": 64, "conv2_ks": 5,
+            "conv3_out": 128, "conv3_ks": 3,
+        },
         {
             "num_classes": 3,
             "conv1_out": 128, "conv1_ks": 7,
@@ -493,22 +493,17 @@ def main():
 
     print(f"\n[HP Search] Best hyperparams => {best_hparams} with val_kappa={best_val_kappa:.4f}")
 
-    # 5) combine ds_train+ds_val => final training => then test
-    print("\nCombining ds_train + ds_val => ds_combined ...")
-    # We'll just combine their .X_all and .y_all arrays
-    X_combined = np.concatenate([ds_train.X_all, ds_val.X_all], axis=0)
-    y_combined = np.concatenate([ds_train.y_all, ds_val.y_all], axis=0)
-    class DSCombined(Dataset):
-        def __init__(self, X, Y):
-            self.X = X
-            self.Y = Y
-        def __len__(self):
-            return len(self.Y)
-        def __getitem__(self, idx):
-            spect = np.expand_dims(self.X[idx], axis=0).astype(np.float32)
-            lbl = int(self.Y[idx])
-            return spect, lbl
-    ds_combined = DSCombined(X_combined, y_combined)
+    # 5) clear memory
+    gc.collect()
+    del ds_train
+    del ds_val
+    torch.cuda.empty_cache()
+
+    # 6) combine ds_train+ds_val => final training => then test
+    # Reload combined dataset from train_files and val_files
+    combined_files = train_files + val_files
+    print("\nReloading combined dataset from train and val files...")
+    ds_combined = AllSubjectsDataset(combined_files)
     print(f"ds_combined => total {len(ds_combined)} samples.")
 
     print("\nNow final training on ds_combined => earlystop against ds_test.")
@@ -531,9 +526,7 @@ def main():
 
     torch.save(final_state, "final_best_model_after_hps.pt")
     print("Final model saved => final_best_model_after_hps.pt")
-
     print("\n=== Final advanced metrics on TEST set ===")
-    # We still do dynamic batch size => if conv3_out >=256 => 2^8 else 2^10
     if best_hparams["conv3_out"] >= 256:
         test_bs = 2**10
     else:

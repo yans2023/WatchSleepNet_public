@@ -129,11 +129,11 @@ python train_transfer.py --model=sleepconvnet
 
 ### Experiment 2: WatchSleepNet Ablation Study
 
-You can perform ablation experiments on WatchSleepNet using `watchsleepnet_cv_ablation.py`. Run WatchSleepNet without the TCN and Attention components
+You can perform ablation experiments on WatchSleepNet using `watchsleepnet_cv_ablation.py`. Run WatchSleepNet without the TCN and Attention, for only pretraining without finetuning
 ```
 python watchsleepnet_cv_ablation.py
 ```
-or 
+or with finetuning
 ```
 python watchsleepnet_transfer_ablation.py
 ```
