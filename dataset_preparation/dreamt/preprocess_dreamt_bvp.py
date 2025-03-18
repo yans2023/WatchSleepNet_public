@@ -5,8 +5,8 @@ import pandas as pd
 from scipy.signal import resample, cheby2, filtfilt
 
 # Define source (CSV files) and destination (output NPZ files) directories
-source_folder = '/home/willkewang/Datasets/DREAMT_PSG'
-dest_folder = '/home/willkewang/Datasets/DREAMT_PPG'
+source_folder = '.../DREAMT_PSG'
+dest_folder = '.../DREAMT_PPG'
 os.makedirs(dest_folder, exist_ok=True)
 
 # Sampling parameters and epoch duration

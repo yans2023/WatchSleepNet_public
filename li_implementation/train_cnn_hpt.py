@@ -414,7 +414,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
 
-    COMBINED_DIR = "/home/willkewang/Datasets/SHHS_ECG_preprocessed_combined"
+    COMBINED_DIR = ".../SHHS_ECG_preprocessed_combined"
     LR = 0.01
     MAX_EPOCHS = 100
 

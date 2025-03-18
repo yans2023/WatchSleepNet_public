@@ -21,9 +21,7 @@ import neurokit2 as nk
 from scipy.ndimage import zoom
 from scipy.signal import csd
 
-###############################################################################
-# Single-subject function with limit to the first 1100 "30s epochs" = 33000 s
-###############################################################################
+
 def process_single_subject_fast(
     file_path,
     output_folder,
@@ -49,18 +47,12 @@ def process_single_subject_fast(
     We do not do debug prints in here. We'll rely on the parallel driver to skip if fail.
     """
 
-    # ---------------------------------------------------------------
-    # Utility: FIR filter
-    # ---------------------------------------------------------------
     def fir_filter_ecg(x, fs, low_cut=1.2, high_cut=22.0, order=801):
         hp_coeff = ss.firwin(order, cutoff=low_cut, fs=fs, pass_zero=False)
         x_hp = ss.lfilter(hp_coeff, 1.0, x)
         lp_coeff = ss.firwin(order, cutoff=high_cut, fs=fs, pass_zero=True)
         return ss.lfilter(lp_coeff, 1.0, x_hp)
-
-    # ---------------------------------------------------------------
-    # Utility: remove outliers in RR
-    # ---------------------------------------------------------------
+    
     def remove_outliers_in_rr(rr):
         L = len(rr)
         if L < 41:
@@ -81,10 +73,7 @@ def process_single_subject_fast(
             return rr_out
         rr_out[~mask] = np.interp(idx[~mask], idx[mask], rr_out[mask])
         return rr_out
-
-    # ---------------------------------------------------------------
-    # Utility: cross-spectral => shape ~ (50x18) => then 64x64
-    # ---------------------------------------------------------------
+    
     def compute_crc_spectrogram(ibi_4hz, edr_4hz, n_fft=512, step=40, max_freq=0.4, fs_r=4):
         L = len(ibi_4hz)
         if L < n_fft:
@@ -127,22 +116,13 @@ def process_single_subject_fast(
     if len(ecg) != len(stages):
         return  # mismatch => skip
 
-    # ---------------------------------------------------------------
-    # 2) Filter entire ecg
-    # ---------------------------------------------------------------
     ecg_f = fir_filter_ecg(ecg, fs)
 
-    # ---------------------------------------------------------------
-    # 3) R-peaks
-    # ---------------------------------------------------------------
     signals, info = nk.ecg_process(ecg_f, sampling_rate=fs)
     r_peaks = info["ECG_R_Peaks"]
     if len(r_peaks) < 2:
         return
 
-    # ---------------------------------------------------------------
-    # 4) Loop 5-min windows
-    # ---------------------------------------------------------------
     total_samples = len(ecg_f)
     epoch_len = int(epoch_duration_sec * fs)
     slide_len = int(slide_sec * fs)
@@ -222,9 +202,6 @@ def process_single_subject_fast(
 
         i += slide_len
 
-###############################################################################
-# 2) Parallel driver with n_jobs=10
-###############################################################################
 def process_all_subjects_parallel(
     input_folder,
     output_folder,
@@ -278,12 +255,9 @@ def process_all_subjects_parallel(
     print(f"Done. Scanned {len(file_list)} subject files in {input_folder}")
 
 
-###############################################################################
-# Example main
-###############################################################################
 if __name__=="__main__":
-    input_folder = "/mnt/linux_partition/SHHS_ECG"
-    output_folder = "/mnt/linux_partition/SHHS_ECG_preprocessed"
+    input_folder = ".../SHHS_ECG"
+    output_folder = ".../SHHS_ECG_preprocessed"
 
     process_all_subjects_parallel(
         input_folder=input_folder,

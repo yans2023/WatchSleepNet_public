@@ -5,7 +5,7 @@ import sys
 import torch.nn as nn
 
 ### Enter path to your dataset (formatted per README)
-DATASET_DIR = "/home/willkewang/Datasets/"
+DATASET_DIR = "..."
 
 # Define the dynamic file save path generator
 def generate_model_save_path(model_name, dataset_name, version=None, suffix=None):
@@ -79,9 +79,7 @@ dataset_configurations = {
     },
     # TODO
     "mesa_ppg": {
-        # "directory": Path("{}SHHS_MESA_IBI".format(DATASET_DIR)),
-        # "directory": Path("{}MESA_PPG".format(DATASET_DIR)),
-        "directory": Path("/mnt/linux_partition/MESA_PPG/"),
+        "directory": Path("{}MESA_PPG".format(DATASET_DIR)),
         "downsampling_rate": 1,
         "multiplier": 1,
         "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
@@ -137,10 +135,10 @@ dataset_configurations = {
 
 class WatchSleepNetConfig:
     BATCH_SIZE = 16
-    LEARNING_RATE = 5e-3
+    LEARNING_RATE = 5e-5
     NUM_EPOCHS = 200
     PATIENCE = 20
-    WEIGHT_DECAY = 1e-5
+    WEIGHT_DECAY = 1e-4
     LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
 
     NUM_INPUT_CHANNELS = 1         # e.g., raw input channels

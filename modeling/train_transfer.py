@@ -72,12 +72,14 @@ model_save_path = train_config["get_model_save_path"](
     model_name=args.model, 
     dataset_name=TRAIN_DATASET, 
     version="ablation_separate_pretraining"
+    # version = "trial_large"
 )
 
 finetune_save_path = test_config["get_model_save_path"](
     model_name=args.model, 
     dataset_name=TEST_DATASET, 
     version="ablation_separate_pretraining"
+    # version = "trial_large"
 )
 
 print("Pretrain/Initial Model Save Path:", model_save_path)
@@ -130,7 +132,7 @@ else:
             saved_model_path=None,  # We'll manually load the state after creation
             learning_rate=model_config_class.LEARNING_RATE,
             weight_decay=model_config_class.WEIGHT_DECAY,
-            freeze_layers=False,
+            freeze_layers=False
         )
         pretrained_model.load_state_dict(pretrained_state)
         val_loss, val_acc, val_f1, val_kappa, val_rem_f1, val_auroc = validate_step(

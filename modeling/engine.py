@@ -721,16 +721,16 @@ def setup_model_and_optimizer(
         model.load_state_dict(torch.load(saved_model_path, map_location=device))
 
     # 3) Optionally freeze layers (partial or full)
-    # if freeze_layers:
-    #     for name, param in model.named_parameters():
-    #         # partial freeze logic:
-    #         # if "classifier" in name or "attention" in name or "lstm" in name:
-    #         if "classifier" in name:
-    #             param.requires_grad = True
-    #         else:
-    #             param.requires_grad = False
-    #         # param.requires_grad = False  # or your custom logic
-    #     print("[setup_model_and_optimizer] Freezing layers as per 'freeze_layers=True'")
+    if freeze_layers:
+        for name, param in model.named_parameters():
+            # partial freeze logic:
+            if "classifier" in name or "attention" in name or "lstm" in name or "tcn" in name:
+            # if "classifier" in name:
+                param.requires_grad = True
+            else:
+                param.requires_grad = False
+            # param.requires_grad = False  # or your custom logic
+        print("[setup_model_and_optimizer] Freezing layers as per 'freeze_layers=True'")
 
     else:
         # Ensure all parameters are trainable

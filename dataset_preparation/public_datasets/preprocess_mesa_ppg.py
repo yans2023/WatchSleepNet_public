@@ -4,8 +4,8 @@ import glob
 from scipy.signal import resample, cheby2, filtfilt
 
 # Define source and destination directories
-source_folder = '/mnt/linux_partition/MESA_PPG/'
-dest_folder = '/home/willkewang/Datasets/MESA_PPG/'
+source_folder = '.../MESA_PPG/'
+dest_folder = '.../MESA_PPG/'
 
 # Create destination folder if it doesn't exist
 os.makedirs(dest_folder, exist_ok=True)

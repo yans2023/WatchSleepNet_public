@@ -129,10 +129,10 @@ freeze_layers = args.freeze_layers
 
 # Save paths
 pretrain_save_path = train_config["get_model_save_path"](
-    model_name=args.model, dataset_name=args.train_dataset, version="ablate_transfer"
+    model_name=args.model, dataset_name=args.train_dataset, version="ablation_separate_pretraining"
 )
 finetune_save_path = test_config["get_model_save_path"](
-    model_name=args.model, dataset_name=args.test_dataset, version="ablate_transfer"
+    model_name=args.model, dataset_name=args.test_dataset, version="ablation_separate_pretraining"
 )
 
 print(f"Pretrain model checkpoint path: {pretrain_save_path}")

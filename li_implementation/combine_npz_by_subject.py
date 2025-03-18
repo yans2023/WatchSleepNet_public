@@ -33,7 +33,6 @@ def parse_subject_id(fname):
     """
     Given a filename like 'shhs-200001_epoch_0082.npz',
     return 'shhs-200001'.
-    Adjust if your naming pattern differs.
     """
     base = os.path.splitext(os.path.basename(fname))[0]  # e.g. shhs-200001_epoch_0082
     parts = base.split("_epoch_")

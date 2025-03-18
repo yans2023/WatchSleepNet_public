@@ -2,13 +2,13 @@ import os
 from tqdm import tqdm
 from utils import read_edf_data, save_to_npz
 
-out_dir = "/mnt/linux_partition/SHHS_ECG/"  # TO fill in: path to save the SHHS extract raw ECG data, this folder needs to be created before running this file
+out_dir = ".../SHHS_ECG/"  # TO fill in: path to save the SHHS extract raw ECG data, this folder needs to be created before running this file
 
 def process_shhs(out_dir):
     # TO fill in: path to the SHHS dataset EDF raw data files
     shhs_dirs = [
-        "/mnt/linux_partition/shhs/polysomnography/edfs/shhs1/",
-        "/mnt/linux_partition/shhs/polysomnography/edfs/shhs2/"
+        ".../shhs/polysomnography/edfs/shhs1/",
+        ".../shhs/polysomnography/edfs/shhs2/"
     ]
     for shhs_dir in shhs_dirs:
         # Extract the folder name (shhs1 or shhs2)
@@ -18,7 +18,7 @@ def process_shhs(out_dir):
             sid = file.split("-")[1].split(".")[0]
             data_path = os.path.join(shhs_dir, file)
             # TO fill in: path to the SHHS dataset XML annotation
-            label_path = f"/mnt/linux_partition/shhs/polysomnography/annotations-events-profusion/{dir_label}/{file.split('.')[0]}-profusion.xml"
+            label_path = f".../shhs/polysomnography/annotations-events-profusion/{dir_label}/{file.split('.')[0]}-profusion.xml"
             try:
                 data, fs, stages = read_edf_data(data_path, label_path, dataset="SHHS", select_chs=["ECG"])
                 save_to_npz(f"{out_dir}{dir_label}-{sid}.npz", data, stages, fs)

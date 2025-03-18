@@ -109,6 +109,6 @@ def process_all_subjects(input_folder, output_folder):
             print(f"Error processing {filename}: {e}")
 
 if __name__ == "__main__":
-    input_folder = "/mnt/linux_partition/MESA_PPG"
-    output_folder = "/mnt/linux_partition/MESA_PPG_spec"
+    input_folder = ".../MESA_PPG"
+    output_folder = ".../MESA_PPG_spec"
     process_all_subjects(input_folder, output_folder)

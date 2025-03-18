@@ -70,6 +70,6 @@ def process_all_dreamt_psg(input_folder, output_folder, default_fs=100):
         np.savez(out_path, data=bvp, fs=fs, stages=stages)
 
 if __name__ == "__main__":
-    input_folder = "/home/willkewang/Datasets/DREAMT_PSG"   # Folder containing the DREAMT_PSG CSV files.
-    output_folder = "/home/willkewang/Datasets/DREAMT_PPG"    # Folder to save the extracted NPZ files.
+    input_folder = ".../DREAMT_PSG" 
+    output_folder = ".../DREAMT_PPG"  
     process_all_dreamt_psg(input_folder, output_folder, default_fs=100)

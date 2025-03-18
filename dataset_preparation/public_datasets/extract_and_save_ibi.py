@@ -216,13 +216,13 @@ if __name__ == "__main__":
       2) MESA (PPG) via neurokit
 
     Both resulting NPZ files (one for each record) will be placed in
-    the SAME output directory, /mnt/linux_partition/SHHS_MESA_IBI/.
+    the SAME output directory, .../SHHS_MESA_IBI/.
     """
     logging.info("Starting dataset processing...")
-    output_dir = "/home/willkewang/Datasets/SHHS_MESA_IBI_new/" # TO fill in: path to the output directory, which needs to be made
+    output_dir = ".../SHHS_MESA_IBI_new/" # TO fill in: path to the output directory, which needs to be made
 
-    shhs_input_dir = "/mnt/linux_partition/SHHS_ECG/" # TO fill in: path to the SHHS extracted ECG dataset
-    shhs_info_path = "/mnt/linux_partition/shhs/datasets/shhs-harmonized-dataset-0.21.0.csv" # TO fill in: path to the SHHS info CSV file
+    shhs_input_dir = ".../SHHS_ECG/" # TO fill in: path to the SHHS extracted ECG dataset
+    shhs_info_path = ".../shhs/datasets/shhs-harmonized-dataset-0.21.0.csv" # TO fill in: path to the SHHS info CSV file
     shhs_id_col = "nsrrid"
     shhs_ahi_col = "nsrr_ahi_hp3r_aasm15"
     shhs_fs_col = "fs"
@@ -239,8 +239,8 @@ if __name__ == "__main__":
         method=shhs_method,
     )
 
-    mesa_input_dir = "/mnt/linux_partition/MESA_PPG/" # TO fill in: path to the MESA extracted PPG dataset
-    mesa_info_path = "/mnt/linux_partition/mesa/datasets/mesa-sleep-harmonized-dataset-0.7.0.csv" # TO fill in: path to the MESA info CSV file
+    mesa_input_dir = ".../MESA_PPG/" # TO fill in: path to the MESA extracted PPG dataset
+    mesa_info_path = ".../mesa/datasets/mesa-sleep-harmonized-dataset-0.7.0.csv" # TO fill in: path to the MESA info CSV file
     mesa_id_col = "mesaid"
     mesa_ahi_col = "nsrr_ahi_hp3u"
     mesa_fs_col = "fs"

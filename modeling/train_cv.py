@@ -13,6 +13,7 @@ from config import (
     WatchSleepNetConfig,
     InsightSleepNetConfig,
     SleepConvNetConfig,
+    SleepPPGNetConfig,
     dataset_configurations,
 )
 from engine import train_cross_validate 
@@ -36,8 +37,11 @@ def parse_arguments():
         default="shhs_mesa_ibi",
         choices=[
             "shhs_ibi",
+            "mesa_ppg",
             "mesa_eibi",
             "mesa_pibi",
+            "dreamt_pibi",
+            "dreamt_ppg",
             "shhs_mesa_ibi",
         ],
         help="Dataset to train on."
@@ -46,43 +50,18 @@ def parse_arguments():
         "--task",
         type=str,
         default="sleep_staging",
-        choices=["sleep_staging", "sleep_wake"],
+        choices=["sleep_staging"],
         help="Task to perform."
     )
     parser.add_argument(
         "--model",
         type=str,
         default="watchsleepnet",
-        choices=["watchsleepnet", "insightsleepnet", "sleepconvnet"],
+        choices=["watchsleepnet", "insightsleepnet", "sleepconvnet", "sleepppgnet"],
         help="Model architecture to use."
     )
     return parser.parse_args()
 
-def initialize_model(model_name: str, config: dict, device: str) -> torch.nn.Module:
-    """Initialize the model based on the selected architecture."""
-    if model_name == "watchsleepnet":
-        return WatchSleepNet(
-            num_features=config['num_features'],
-            num_channels=config['num_channels'],
-            kernel_size=config['kernel_size'],
-            hidden_dim=config['hidden_dim'],
-            num_heads=config['num_heads'],
-            num_layers=config['num_layers'],
-            tcn_layers=config['tcn_layers'],
-            num_classes=config['num_classes'],
-        ).to(device)
-    
-    elif model_name == "insightsleepnet":
-        return InsightSleepNet(
-            input_size=config['input_size'],
-            output_size=config['output_size']
-        ).to(device)
-    
-    elif model_name == "sleepconvnet":
-        return SleepConvNet().to(device)
-    
-    else:
-        raise ValueError(f"Model '{model_name}' is not recognized.")
 
 def main():
     # Suppress UserWarnings
@@ -104,6 +83,8 @@ def main():
         model_config_class = InsightSleepNetConfig
     elif args.model == "sleepconvnet":
         model_config_class = SleepConvNetConfig
+    elif args.model == "sleepppgnet":
+        model_config_class = SleepPPGNetConfig
     else:
         raise ValueError("Model not recognized.")
     
