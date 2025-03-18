@@ -1,16 +1,3 @@
-#!/usr/bin/env python3
-
-"""
-parallel_ecg_preprocessing_limited.py
-
-- Parallel pipeline to process NPZ files with ECG data, but only load
-  the first 1100 * 30 s = 33000 s of data (about 9.17 hours if fs=1,
-  or 33000 * fs samples if fs is higher).
-- Then run the single-subject pipeline and skip the rest of the data entirely.
-- Uses n_jobs=10 for parallelization. On error, skip that file. On resume logic,
-  we skip any subject that has _epoch_0000.npz already in output folder.
-"""
-
 import os
 import glob
 from joblib import Parallel, delayed

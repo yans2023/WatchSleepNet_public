@@ -1,21 +1,3 @@
-#!/usr/bin/env python3
-
-"""
-all_in_one_tunable_licnn_with_dynamic_batchsize_singleload.py
-
-- Loads train/val/test each exactly ONCE at startup, storing them in memory.
-- Runs hyperparameter search across multiple LiCNN conv configurations, 
-  re-building DataLoaders from the same in-memory Datasets for each set 
-  (but never re-reading from disk).
-- Uses early stopping based on val_kappa.
-- Dynamically chooses batch size based on whether the largest conv layer is "large".
-- Finally, re-trains on (train+val) with best hyperparams, then test.
-
-We remove MacroAUROC from per-epoch metrics for speed, only compute 
-it at the end for final advanced metrics on test. We still watch 
-for NaN/Inf, clip gradients, etc.
-"""
-
 import os
 import glob
 import gc

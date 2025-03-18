@@ -1,28 +1,3 @@
-#!/usr/bin/env python3
-
-"""
-combine_small_npz_per_subject.py
-
-This script scans a directory of NPZ epoch files, infers a subject ID from
-each filename, merges all epoch files for that subject into one larger NPZ,
-applies a label mapping, filters out epochs with invalid labels (i.e. label -1),
-and prints the unique counts for each class (0, 1, and 2) per subject.
-The resulting combined NPZ for each subject is stored in an output directory.
-
-Usage:
-  python3 combine_small_npz_per_subject.py \
-      --input_dir /path/to/epoch_npz \
-      --output_dir /path/to/combined_npz
-
-It assumes each small .npz has at least:
-  - 'crc_spec' (shape [64,64]) 
-  - 'label' (integer)
-
-Filename pattern is assumed to be like:
-  subjectID_epoch_0000.npz
-We parse the "subjectID" by splitting on "_epoch_".
-"""
-
 import os
 import glob
 import argparse

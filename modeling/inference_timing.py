@@ -1,16 +1,8 @@
-#!/usr/bin/env python3
-"""
-benchmark_inference_dreamt_pibi.py
-
-Usage:
-    python benchmark_inference_dreamt_pibi.py
-"""
 import os
 import time
 import torch
 import numpy as np
 
-# Import your model/data configs:
 from config import (
     dataset_configurations,
     WatchSleepNetConfig,
@@ -21,9 +13,6 @@ from config import (
 from engine import setup_model_and_optimizer
 from data_setup import SSDataset
 
-###############################################################################
-# 1) User-Defined Settings
-###############################################################################
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 print("Using device:", DEVICE)
 
@@ -73,12 +62,8 @@ dataset = SingleSubjectDataset(
 if len(dataset) == 0:
     raise FileNotFoundError(f"Could not find {SINGLE_SUBJECT_FILE} in {DATASET_DIR}.")
 
-# Grab the only sample: (ibi, labels, num_segments, ahi)
 ibi, labels, num_segments, ahi = dataset[0]
 
-# We add a batch dimension, so shape is [1, ...]
-# Many of your models expect (batch_size, num_segments, time), or
-# for some you might need an extra channel dim. Adjust as needed.
 X = ibi.unsqueeze(0).to(DEVICE)    # shape: [1, segments, samples_per_segment]
 Y = labels.unsqueeze(0).to(DEVICE) # shape: [1, segments]
 
@@ -117,15 +102,11 @@ def measure_inference_time(model, input_tensor, lengths=None, num_warmups=10, nu
 
     return (end_time - start_time) / num_trials
 
-###############################################################################
-# Benchmark each of the 4 models
-###############################################################################
 for model_name, checkpoint_path in MODEL_PATHS.items():
     print("\n" + "="*80)
     print(f"Benchmarking: {model_name}")
     print("Checkpoint:", checkpoint_path)
 
-    # 5a) Instantiate model with your config
     base_config = MODEL_CONFIGS[model_name]
     model, _ = setup_model_and_optimizer(
         model_name=model_name,
@@ -137,18 +118,14 @@ for model_name, checkpoint_path in MODEL_PATHS.items():
         freeze_layers=False
     )
 
-    # 5b) Load the saved weights
     if not os.path.exists(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
     model.load_state_dict(torch.load(checkpoint_path, map_location=DEVICE))
     model.to(DEVICE)
 
-    # 5c) Prepare lengths tensor if needed (for SleepPPGNet)
     lengths_tensor = None
-
     lengths_tensor = torch.tensor([num_segments], device=DEVICE)
 
-    # 5d) Measure inference time (pass lengths for sleepppgnet)
     avg_sec = measure_inference_time(model, X, lengths=lengths_tensor)
     avg_ms = avg_sec * 1000
     print(f"=> {model_name} average GPU inference time on 1 subject: {avg_ms:.3f} ms")

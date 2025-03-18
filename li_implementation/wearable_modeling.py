@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 THis script is incomplete because we could not verify the correct implementation of the CNN model,
 and cannot continue on to perform transfer learning.
