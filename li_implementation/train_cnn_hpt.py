@@ -172,7 +172,6 @@ class LiCNN(nn.Module):
         logits = self.fc(x)
         return logits
 
-# -------------- Data / metrics code --------------
 class AllSubjectsDataset(Dataset):
     """
     A single pass that loads NPZ from disk, storing them in memory once.
@@ -409,7 +408,6 @@ def train_model_with_earlystop_inmemory(
     return best_val_kappa, best_state
 
 
-# -------------------- MAIN --------------------
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
@@ -464,6 +462,12 @@ def main():
             "conv1_out": 128, "conv1_ks": 7,
             "conv2_out": 256, "conv2_ks": 5,
             "conv3_out": 512, "conv3_ks": 3,
+        },
+        {
+            "num_classes": 3,
+            "conv1_out": 50, "conv1_ks": 7,
+            "conv2_out": 100, "conv2_ks": 5,
+            "conv3_out": 500, "conv3_ks": 3,
         }
     ]
 
