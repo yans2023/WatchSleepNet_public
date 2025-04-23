@@ -27,7 +27,7 @@ def generate_model_save_path(model_name, dataset_name, version=None, suffix=None
 # Define configuration settings for each dataset in a dictionary
 dataset_configurations = {
     "shhs_mesa_ibi": {
-        "directory": Path("{}SHHS_MESA_IBI".format(DATASET_DIR)),
+        "directory": Path("/mnt/nvme2/SHHS_MESA_IBI"),
         "downsampling_rate": 1,
         "multiplier": 1,
         "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
@@ -44,7 +44,7 @@ dataset_configurations = {
         ),
     },
     "mesa_pibi": {
-        "directory": Path("{}MESA_PIBI".format(DATASET_DIR)),
+        "directory": Path("/mnt/nvme2/MESA_PIBI"),
         "downsampling_rate": 1,
         "multiplier": 1,
         "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
@@ -81,7 +81,7 @@ dataset_configurations = {
     "mesa_ppg": {
         # "directory": Path("{}SHHS_MESA_IBI".format(DATASET_DIR)),
         # "directory": Path("{}MESA_PPG".format(DATASET_DIR)),
-        "directory": Path("/mnt/linux_partition/MESA_PPG/"),
+        "directory": Path("/mnt/nvme2/MESA_PPG_preprocessed/"),
         "downsampling_rate": 1,
         "multiplier": 1,
         "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
@@ -98,7 +98,7 @@ dataset_configurations = {
         ),
     },
     "dreamt_pibi": {
-        "directory": Path("{}DREAMT_PIBI_SE".format(DATASET_DIR)),
+        "directory": Path("/mnt/nvme2/DREAMT_PIBI_SE_updated"),
         "downsampling_rate": 1,
         "multiplier": 1,
         "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
@@ -116,7 +116,7 @@ dataset_configurations = {
         ),
     },
     "dreamt_ppg": {
-        "directory": Path("{}DREAMT_PPG".format(DATASET_DIR)),
+        "directory": Path("/mnt/nvme2/DREAMT_PPG_preprocesse/"),
         "downsampling_rate": 1,
         "multiplier": 1,
         "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
@@ -137,10 +137,10 @@ dataset_configurations = {
 
 class WatchSleepNetConfig:
     BATCH_SIZE = 16
-    LEARNING_RATE = 5e-3
+    LEARNING_RATE = 5e-5
     NUM_EPOCHS = 200
     PATIENCE = 20
-    WEIGHT_DECAY = 1e-5
+    WEIGHT_DECAY = 1e-4
     LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
 
     NUM_INPUT_CHANNELS = 1         # e.g., raw input channels
@@ -183,9 +183,9 @@ class WatchSleepNetConfig:
 class InsightSleepNetConfig:
     # --- Training hyperparams ---
     BATCH_SIZE = 4
-    LEARNING_RATE = 1e-4
+    LEARNING_RATE = 1e-5
     NUM_EPOCHS = 200
-    PATIENCE = 20
+    PATIENCE = 10
     WEIGHT_DECAY = 1e-4
     LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
     NUM_CLASSES = 3
@@ -193,7 +193,7 @@ class InsightSleepNetConfig:
     # --- Old Architecture Defaults (multi-block) ---
     INPUT_SIZE = 750    # Each segment length
     OUTPUT_SIZE = 3     # e.g., number of classes
-    DROPOUT_RATE = 0.4
+    DROPOUT_RATE = 0.5
     ACTIVATION = nn.ReLU()
 
     BLOCK_CONFIGS = [
@@ -310,8 +310,8 @@ class SleepPPGNetConfig:
     BATCH_SIZE = 4
     LEARNING_RATE = 1e-4
     NUM_EPOCHS = 200
-    PATIENCE = 20
-    WEIGHT_DECAY = 1e-3
+    PATIENCE = 40
+    WEIGHT_DECAY = 1e-4
     LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
     
     # Model hyperparameters

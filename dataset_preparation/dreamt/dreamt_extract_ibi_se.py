@@ -39,7 +39,7 @@ def read_dreamt_data(
     )
 
     # Map sleep stages to integer values
-    stage_mapping = {"W": 0, "N1": 1, "N2": 2, "N3": 3, "R": 4, "Missing": -1}
+    stage_mapping = {"P":-1, "W": 0, "N1": 1, "N2": 2, "N3": 3, "R": 4, "Missing": -1}
     mapped_stages = np.array([stage_mapping.get(stage, -1) for stage in sleep_stages])
 
     # Remove samples labeled as "Missing"
@@ -164,16 +164,17 @@ def calculate_ibi_segment(ppg_signal, fs, use_package="neurokit"):
     return ibi, empty_segment_count
 
 
-def extract_ibi_hard_code(root_path, filename):
-    info_path = root_path / "participant_info.csv"
+def extract_ibi_hard_code(filename):
+    info_path = "/media/nvme1/sleep/DREAMT_Version2/participant_info.csv"
     info_df = pd.read_csv(info_path)
     # if recomputing, then we have to delete the code checking for file already existing
     try:
-        in_dir = root_path / "data"
-        out_dir = root_path / "DREAMT_PIBI_SE"
+        in_dir = Path("/media/nvme1/sleep/DREAMT_100Hz_updated/")
+        out_dir = Path("/mnt/nvme2/DREAMT_PIBI_SE_updated/")
 
-        if not os.path.exists(os.path.join(out_dir, filename)):
-            sid = filename.split("_")[0]
+        if os.path.exists(os.path.join(out_dir, filename)):
+            print(str(filename))
+            sid = str(filename).split("/")[-1].split("_")[0]
             print(sid)
             AHI = info_df.loc[info_df["SID"] == sid, "AHI"].values[0]
             print("AHI: ", AHI)
@@ -188,7 +189,7 @@ def extract_ibi_hard_code(root_path, filename):
             )
 
             np.savez(
-                os.path.join(out_dir, filename.split("_")[0] + ".npz"),
+                os.path.join(out_dir, sid + ".npz"),
                 data=ibi,
                 fs=int(25),
                 ahi = float(AHI), 
@@ -198,7 +199,6 @@ def extract_ibi_hard_code(root_path, filename):
         logging.exception(f"Error processing file: {filename}")
 
 
-root_path = ".../DREAMT" # TO fill in: path to the DREAMT dataset
-list_files = root_path / "data_100Hz"
+list_files = Path("/media/nvme1/sleep/DREAMT_100Hz_updated/")
 for file in tqdm(list_files.iterdir()):
-    extract_ibi_hard_code(root_path, file)
+    extract_ibi_hard_code(file)

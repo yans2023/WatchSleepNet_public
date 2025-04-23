@@ -4,14 +4,14 @@ import glob
 from scipy.signal import resample, cheby2, filtfilt
 
 # Define source and destination directories
-source_folder = '/mnt/linux_partition/MESA_PPG/'
-dest_folder = '/home/willkewang/Datasets/MESA_PPG/'
+source_folder = '/mnt/nvme2/MESA_PPG/'
+dest_folder = '/mnt/nvme2/MESA_PPG_preprocessed/'
 
 # Create destination folder if it doesn't exist
 os.makedirs(dest_folder, exist_ok=True)
 
 # Define sampling frequencies and epoch duration
-orig_fs = 256.0         # original sampling frequency in Hz
+orig_fs = 125        # original sampling frequency in Hz
 target_fs = 25.0        # target sampling frequency in Hz
 epoch_duration = 30.0   # epoch duration in seconds
 

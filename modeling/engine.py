@@ -127,7 +127,6 @@ def pretty_print_confusion_matrix(cm, labels, title=None):
     print(separator)
     print("\n".join(rows))
 
-
 def compute_metrics(
     predictions,
     labels,
@@ -135,24 +134,50 @@ def compute_metrics(
     testing=False,
     task="sleep_staging",
     print_conf_matrix=False,
-    category_name=None
-):
+    category_name=None,
+    exclude_negatives=False
+):  
+    predictions = torch.tensor(predictions)
+    labels = torch.tensor(labels)
+
+    predictions = predictions.cpu().numpy() if predictions.is_cuda else predictions.numpy()
+    labels = labels.cpu().numpy() if labels.is_cuda else labels.numpy()
     nan_predictions_count = np.isnan(predictions).sum()
 
     if nan_predictions_count > 0:
         print(f"NaN detected in predictions! Count: {nan_predictions_count}")
-        predictions = torch.where(torch.isnan(predictions), torch.zeros_like(predictions), predictions)
+        predictions = np.where(np.isnan(predictions), 0, predictions)
+
     if pred_probs is not None:
+        if isinstance(pred_probs, list) and all(isinstance(t, torch.Tensor) for t in pred_probs):
+            pred_probs = torch.stack([t.detach() for t in pred_probs], dim=0)   # (N, C)
+        else:
+            pred_probs = torch.tensor(pred_probs)  # fallback for plain lists/ndarrays
+
+        pred_probs = pred_probs.cpu().numpy() if pred_probs.is_cuda else pred_probs.numpy()
         nan_pred_probs_count = np.isnan(pred_probs).sum()
         if nan_pred_probs_count > 0:
-            print(f"NaN detected in labels! Count: {nan_pred_probs_count}")
-            pred_probs = torch.where(torch.isnan(pred_probs), torch.zeros_like(pred_probs), pred_probs)
+            print(f"NaN detected in pred_probs! Count: {nan_pred_probs_count}")
+            pred_probs = np.where(np.isnan(pred_probs), 0, pred_probs)
 
-    # Filter out invalid indices where label is -1
-    valid_indices = [i for i, label in enumerate(labels) if label != -1]
-    valid_labels = [labels[i] for i in valid_indices]
+    # Filter out invalid indices where label is -1 (if specified)
+    if exclude_negatives:
+        valid_indices = [i for i, label in enumerate(labels) if label != -1]
+        valid_labels = labels[valid_indices]
+        valid_predictions = predictions[valid_indices]
+        if pred_probs is not None:
+            valid_pred_probs = pred_probs[valid_indices]
+        else:
+            valid_pred_probs = None
+    else:
+        valid_labels = labels
+        valid_predictions = predictions
+        valid_pred_probs = pred_probs
+
+    # Handle case where number of classes in valid_labels and valid_pred_probs differ
     unique_labels = np.unique(valid_labels)
-    valid_predictions = [predictions[i] for i in valid_indices]
+    if pred_probs is not None and len(unique_labels) != pred_probs.shape[1]:
+        print(f"Warning: Number of unique classes in true labels ({len(unique_labels)}) does not match the number of columns in predicted probabilities ({pred_probs.shape[1]})")
 
     accuracy = accuracy_score(valid_labels, valid_predictions)
     f1 = f1_score(valid_labels, valid_predictions, average="weighted")
@@ -161,12 +186,7 @@ def compute_metrics(
     if print_conf_matrix:
         cm = confusion_matrix(valid_labels, valid_predictions)
         if task == "sleep_staging":
-            if len(unique_labels) == 3:
-                class_names = ["Wake", "NREM", "REM"]
-            elif len(unique_labels) == 4:
-                class_names = ["Wake", "Light", "Deep", "REM"]
-            else:
-                print("ERROR in number of classes: {}; Not implemented".format(len(unique_labels)))
+            class_names = ["Wake", "NREM", "REM"] if len(np.unique(valid_labels)) == 3 else ["Wake", "Light", "Deep", "REM"]
         else:
             class_names = ["Wake", "Sleep"]
 
@@ -177,33 +197,26 @@ def compute_metrics(
         pretty_print_confusion_matrix(cm, class_names, title=title)
 
     if testing:
-        valid_probabilities = [pred_probs[i] for i in valid_indices]
-        if len(unique_labels) == 3:
-            rem_f1 = f1_score(valid_labels, valid_predictions, labels=[2], average="macro")
-        elif len(unique_labels) == 4:
-            rem_f1 = f1_score(valid_labels, valid_predictions, labels=[3], average="macro")
+        if valid_pred_probs is not None:
+            if len(np.unique(valid_labels)) == 3:
+                rem_f1 = f1_score(valid_labels, valid_predictions, labels=[2], average="macro")
+            elif len(np.unique(valid_labels)) == 4:
+                rem_f1 = f1_score(valid_labels, valid_predictions, labels=[3], average="macro")
+            else:
+                print(f"ERROR in number of classes: {len(np.unique(valid_labels))}; Not implemented")
+            if task == "sleep_wake":
+                auroc = roc_auc_score(valid_labels, valid_pred_probs, average="macro")
+            elif task == "sleep_staging":
+                auroc = roc_auc_score(valid_labels, valid_pred_probs, multi_class="ovr", average="macro")
+            else:
+                raise ValueError("Unsupported task: {}".format(task))
         else:
-            print("ERROR in number of classes: {}; Not implemented".format(len(unique_labels)))
-        if task == "sleep_wake":
-            auroc = roc_auc_score(valid_labels, valid_probabilities, average="macro")
-        elif task == "sleep_staging":
-            try:
-                auroc = roc_auc_score(
-                    valid_labels,
-                    valid_probabilities,
-                    multi_class="ovr",
-                    average="macro",
-                )
-            except ValueError as e:
-                print(f"Error: {e}")
-                num_classes_y_true = len(set(valid_labels))
-                num_columns_y_score = np.array(valid_probabilities).shape[1]
-                print(f"Number of classes in y_true: {num_classes_y_true}")
-                print(f"Number of columns in y_score: {num_columns_y_score}")
-                raise
+            rem_f1, auroc = None, None
+
         return accuracy, f1, kappa, rem_f1, auroc
 
     return accuracy, f1, kappa
+
 
 
 def check_for_nan_grads(model):
@@ -390,7 +403,7 @@ def train_step(model, dataloader, loss_fn, optimizer, device, model_name="watchs
     return avg_loss, acc, f1, kappa, rem_f1, auroc
 
 
-def validate_step(model, dataloader, loss_fn, device, task="sleep_staging"):
+def validate_step(model, dataloader, loss_fn, device, task="sleep_staging", exclude_negatives=False):
     model.eval()
     val_loss = 0.0
     all_labels = []
@@ -414,17 +427,20 @@ def validate_step(model, dataloader, loss_fn, device, task="sleep_staging"):
                 all_probabilities.extend(pred_probs.detach().cpu().numpy())
 
     avg_loss = val_loss / len(dataloader)
+
+    # Pass the exclude_negatives flag to compute_metrics
     acc, f1, kappa, rem_f1, auroc = compute_metrics(
         all_predictions,
         all_labels,
         pred_probs=all_probabilities,
         testing=True,
         task=task,
+        exclude_negatives=exclude_negatives  # Add the flag here
     )
+
     return avg_loss, acc, f1, kappa, rem_f1, auroc
 
-
-def test_step(model, dataloader, device, task="sleep_staging"):
+def test_step(model, dataloader, device, task="sleep_staging", exclude_negatives=False):
     model.eval()
     all_true_labels = []
     all_predicted_labels = []
@@ -437,10 +453,18 @@ def test_step(model, dataloader, device, task="sleep_staging"):
             masked_outputs, masked_labels, predicted, pred_probs, mask, outputs = forward_pass_with_mask(
                 model, data, labels, lengths, device, task
             )
+            
+            # Exclude -1 labels if specified
+            if exclude_negatives:
+                valid_indices = [i for i, label in enumerate(masked_labels) if label != -1]
+                masked_labels = [masked_labels[i] for i in valid_indices]
+                predicted = [predicted[i] for i in valid_indices]
+                pred_probs = [pred_probs[i] for i in valid_indices]
+
             # Store valid (flattened) results
-            all_true_labels.extend(masked_labels.cpu().numpy())
-            all_predicted_labels.extend(predicted.cpu().numpy())
-            all_predicted_probabilities.extend(pred_probs.detach().cpu().numpy())
+            all_true_labels.extend(masked_labels)
+            all_predicted_labels.extend(predicted)
+            all_predicted_probabilities.extend(pred_probs)
 
             # Since AHI values are per sample, we repeat each 'ahi' for the valid sequence length
             for ahi, length in zip(ahis, lengths):
@@ -860,7 +884,6 @@ def run_training_epochs(
     # The best checkpoint is early_stopping.checkpoint_path
     return early_stopping.checkpoint_path, training_logs
 
-
 def finalize_fold_or_repeat(
     model,
     checkpoint_path,
@@ -873,6 +896,7 @@ def finalize_fold_or_repeat(
     do_test=True,
     task="sleep_staging",
     model_name="watchsleepnet",
+    exclude_negatives=False,  # New parameter to exclude -1 labels during final evaluation
 ):
     """
     Helper function that:
@@ -891,10 +915,10 @@ def finalize_fold_or_repeat(
 
     # 2. Evaluate on train/val to store best metrics
     (train_loss, train_acc, train_f1, train_kappa, train_rem_f1, train_auroc,) = validate_step(
-        model, train_dataloader, loss_fn, device
+        model, train_dataloader, loss_fn, device, exclude_negatives=exclude_negatives
     )
     (val_loss, val_acc, val_f1, val_kappa, val_rem_f1, val_auroc,) = validate_step(
-        model, val_dataloader, loss_fn, device
+        model, val_dataloader, loss_fn, device, exclude_negatives=exclude_negatives
     )
 
     best_results_dict["train_loss"].append(train_loss)
@@ -915,8 +939,9 @@ def finalize_fold_or_repeat(
 
     # 3. Optional test
     if do_test and test_dataloader is not None:
+        # If exclude_negatives is True, it will exclude -1 labels
         test_loss, test_acc, test_f1, test_kappa, test_rem_f1, test_auroc = validate_step(
-            model, test_dataloader, loss_fn, device
+            model, test_dataloader, loss_fn, device, exclude_negatives=exclude_negatives
         )
         best_results_dict["test_loss"].append(test_loss)
         best_results_dict["test_acc"].append(test_acc)
@@ -925,12 +950,13 @@ def finalize_fold_or_repeat(
         best_results_dict["test_rem_f1"].append(test_rem_f1)
         best_results_dict["test_auroc"].append(test_auroc)
 
+        # Collecting the predictions using the test_step function with exclusion logic if needed
         (
             test_true_labels,
             test_predicted_labels,
             test_predicted_probs,
             test_ahi,
-        ) = test_step(model, test_dataloader, device, task=task)
+        ) = test_step(model, test_dataloader, device, task=task, exclude_negatives=exclude_negatives)
 
     return test_true_labels, test_predicted_labels, test_predicted_probs, test_ahi
 
@@ -1201,7 +1227,7 @@ def train_and_evaluate(
     print(f"Number of folds: {num_folds}")
 
     # ---- 1) Loop over each fold ----
-    for fold_idx, (train_dl, val_dl, test_dl) in enumerate(dataloader_folds, start=1):
+    for fold_idx, (train_dl, val_dl, test_dl, final_test_loader) in enumerate(dataloader_folds, start=1):
         print(f"\n===== Fold {fold_idx}/{num_folds} =====")
 
         # Create a fold-specific checkpoint path if we have a base path
@@ -1243,7 +1269,7 @@ def train_and_evaluate(
             checkpoint_path=best_ckpt_path,
             train_dataloader=train_dl,
             val_dataloader=val_dl,
-            test_dataloader=test_dl,
+            test_dataloader=final_test_loader,
             loss_fn=loss_fn,
             device=device,
             best_results_dict=best_results,
@@ -1275,6 +1301,7 @@ def train_and_evaluate(
         pred_probs=all_predicted_probabilities,
         testing=True,
         task="sleep_staging",
+        exclude_negatives=True,
         print_conf_matrix=True,  # prints confusion matrix
     )
     print(f"Overall Accuracy: {overall_acc:.4f}")
@@ -1395,7 +1422,7 @@ def train_ablate_evaluate(
     print(f"Number of folds: {num_folds}")
 
     # Loop over folds
-    for fold_idx, (train_dl, val_dl, test_dl) in enumerate(dataloader_folds, 1):
+    for fold_idx, (train_dl, val_dl, test_dl, final_test_loader) in enumerate(dataloader_folds, 1):
         print(f"\n===== Fold {fold_idx}/{num_folds} =====")
 
         # Checkpoint for this fold
@@ -1439,13 +1466,14 @@ def train_ablate_evaluate(
             checkpoint_path=best_ckpt_path,
             train_dataloader=train_dl,
             val_dataloader=val_dl,
-            test_dataloader=test_dl,
+            test_dataloader=final_test_loader,
             loss_fn=loss_fn,
             device=device,
             best_results_dict=best_results,
             do_test=True,
             task="sleep_staging",
             model_name=model_name,
+            exclude_negatives=True
         )
 
         # Accumulate test predictions
@@ -1476,6 +1504,7 @@ def train_ablate_evaluate(
         testing=True,
         task="sleep_staging",
         print_conf_matrix=True,
+        exclude_negatives=True
     )
     print(f"Overall Accuracy: {overall_acc:.4f}")
     print(f"Overall F1 Score: {overall_f1:.4f}")

@@ -9,13 +9,23 @@ import json
 seed = 0
 
 class SSDataset(Dataset):
-    def __init__(self, dir, dataset, file_list = None, multiplier=1.0, downsample_rate=1, task="sleep_staging", return_file_name=False):
+    def __init__(self, 
+                 dir, 
+                 dataset, 
+                 file_list = None, 
+                 multiplier=1.0, 
+                 downsample_rate=1, 
+                 task="sleep_staging", 
+                 return_file_name=False,
+                 remap_negatives=True):
         self.dir = dir
         self.dataset = dataset
         self.multiplier = multiplier
         self.downsample_rate = downsample_rate
         self.task = task
         self.return_file_name = return_file_name
+        self.remap_negatives = remap_negatives
+
         if file_list:
             # If file list is provided, use only those files
             self.files = [self.dir / file_name for file_name in file_list]
@@ -80,14 +90,18 @@ class SSDataset(Dataset):
             return ibi, labels, num_segments, ahi
 
     def remap_labels(self, labels, task):
-        # 0=Wake, 1=N1, 2=N2, 3=N3, 4=REM, 5=Movement => mapped to -1, plus -1 => -1 for out-of-range
         if task == "sleep_staging":
-            label_map = {0:0, 1:1, 2:1, 3:1, 4:2, 5:-1, -1:-1}
+            if self.remap_negatives:  # Remap -1 to 0 only if remap_negatives is True
+                label_map = {0: 0, 1: 1, 2: 1, 3: 1, 4: 2, 5: 0, -1: 0}  # Treat -1 as 0 for finetuning
+            else:
+                label_map = {0: 0, 1: 1, 2: 1, 3: 1, 4: 2, 5: -1, -1:-1}  # No remapping of -1 when remap_negatives is False
         elif task == "sleep_wake":
-            label_map = {0:0, 1:1, 2:1, 3:1, 4:1, 5:-1, -1:-1}
+            if self.remap_negatives:  # Same logic for sleep_wake task
+                label_map = {0: 0, 1: 1, 2: 1, 3: 1, 4: 1, 5: -1, -1: 0}
+            else:
+                label_map = {0: 0, 1: 1, 2: 1, 3: 1, 4: 1, 5: -1}
 
-        # If a label is not in label_map keys, default to -1
-        # e.g., label_map.get(x, -1) means "use label_map[x] if it exists, otherwise -1."
+        # Remap all labels based on the map
         remapped_labels = np.vectorize(lambda x: label_map.get(x, -1))(labels)
         return remapped_labels
 
@@ -102,7 +116,9 @@ class SSDataset(Dataset):
         return ibis_padded, labels_padded, lengths, ahis
 
 
-def create_dataloaders(dir, train_ratio, val_ratio, batch_size, num_workers, dataset, multiplier=1.0, downsampling_rate=1, task="sleep_staging"):
+def create_dataloaders(dir, train_ratio, val_ratio, 
+                       batch_size, num_workers, dataset, 
+                       multiplier=1.0, downsampling_rate=1, task="sleep_staging"):
     """ Create train, validation, and test data loaders
     test_ratio = 1 - train_ratio - val_ratio
 
@@ -121,7 +137,8 @@ def create_dataloaders(dir, train_ratio, val_ratio, batch_size, num_workers, dat
         _type_: _description_
     """
     # Initialize the ibi dataset
-    dataset = SSDataset(dir=dir, dataset=dataset, multiplier=multiplier, downsample_rate=downsampling_rate, task=task)
+    dataset = SSDataset(dir=dir, dataset=dataset, multiplier=multiplier, downsample_rate=downsampling_rate, task=task, remap_negatives=True)
+
     # Create train/val/test split
     train_size = int(train_ratio * len(dataset))
     val_size = int(val_ratio * len(dataset))
@@ -152,7 +169,6 @@ def create_dataloaders(dir, train_ratio, val_ratio, batch_size, num_workers, dat
 
     return train_loader, val_loader, test_loader
 
-
 def create_dataloaders_kfolds(
     dir,
     dataset,
@@ -163,9 +179,15 @@ def create_dataloaders_kfolds(
     multiplier=1.0,
     downsampling_rate=1,
 ):
-    # Initialize the ibi dataset
+    dataset_name = dataset
+    # Initialize the main dataset (with remapping of -1 to 0)
     dataset = SSDataset(
-        dir=dir, multiplier=multiplier, dataset=dataset, downsample_rate=downsampling_rate
+        dir=dir, multiplier=multiplier, dataset=dataset_name, downsample_rate=downsampling_rate, remap_negatives=True
+    )
+
+    # Initialize the final dataset (without remapping -1 for final evaluation)
+    final_dataset = SSDataset(
+        dir=dir, multiplier=multiplier, dataset=dataset_name, downsample_rate=downsampling_rate, remap_negatives=False
     )
 
     kfold = KFold(n_splits=num_folds, shuffle=True)
@@ -183,7 +205,9 @@ def create_dataloaders_kfolds(
         )
 
         test_dataset = torch.utils.data.Subset(dataset, test_idx)
+        final_test_dataset = torch.utils.data.Subset(final_dataset, test_idx)  # Same indices but no remapping
 
+        # Create the dataloaders
         train_loader = DataLoader(
             train_dataset,
             batch_size=batch_size,
@@ -205,7 +229,16 @@ def create_dataloaders_kfolds(
             num_workers=num_workers,
             collate_fn=SSDataset.collate_fn,
         )
-        folds.append((train_loader, val_loader, test_loader))
+        final_test_loader = DataLoader(
+            final_test_dataset,
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=num_workers,
+            collate_fn=SSDataset.collate_fn,
+        )
+
+        # Add to folds
+        folds.append((train_loader, val_loader, test_loader, final_test_loader))
 
     return folds
 
