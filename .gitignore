@@ -14,3 +14,4 @@ __pycache__
 *optuna_studies*
 *ipynb
 *npy
+*try_external.py
