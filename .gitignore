@@ -12,3 +12,4 @@ __pycache__
 *_new.py
 *config.py
 *optuna_studies*
+*ipynb
