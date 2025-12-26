@@ -5,7 +5,7 @@ import sys
 import torch.nn as nn
 
 ### Enter path to your dataset (formatted per README)
-DATASET_DIR = "..."
+DATASET_DIR = "/Users/ys/Documents/02_AICoding/Refrences/WatchSleepNet_public/data/"
 
 # Define the dynamic file save path generator
 def generate_model_save_path(model_name, dataset_name, version=None, suffix=None):
@@ -130,14 +130,31 @@ dataset_configurations = {
             suffix=suffix,
         ),
     },
+    "psg_hrv": {
+        "directory": Path("{}PSG_HRV".format(DATASET_DIR)),
+        "downsampling_rate": 1,
+        "multiplier": 1,
+        "get_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
+            model_name=model_name,
+            dataset_name=dataset_name,
+            version=version,
+            suffix=suffix,
+        ),
+        "dd_analysis_model_save_path": lambda model_name=None, dataset_name=None, version=None, suffix=None: generate_model_save_path(
+            model_name=model_name,
+            dataset_name=dataset_name,
+            version=version,
+            suffix=suffix,
+        ),
+    },
 }
 
 
 class WatchSleepNetConfig:
     BATCH_SIZE = 16
     LEARNING_RATE = 5e-5
-    NUM_EPOCHS = 200
-    PATIENCE = 20
+    NUM_EPOCHS = 20
+    PATIENCE = 5
     WEIGHT_DECAY = 1e-4
     LOSS_FN = nn.CrossEntropyLoss(ignore_index=-1)
 

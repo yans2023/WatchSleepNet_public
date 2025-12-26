@@ -34,6 +34,8 @@ class SSDataset(Dataset):
             elif "mesa" in dataset:
                 self.files = [file for file in self.dir.glob("*.npz")]
                 print("MESA contains files: ", len(self.files))
+            else:
+                self.files = [file for file in self.dir.glob("*.npz")]
 
     def __len__(self):
         return len(self.files)
@@ -168,6 +170,9 @@ def create_dataloaders_kfolds(
         dir=dir, multiplier=multiplier, dataset=dataset, downsample_rate=downsampling_rate
     )
 
+    if num_folds > len(dataset):
+        num_folds = len(dataset)
+
     kfold = KFold(n_splits=num_folds, shuffle=True)
     folds = []
 
@@ -175,12 +180,21 @@ def create_dataloaders_kfolds(
         train_dataset = torch.utils.data.Subset(dataset, train_idx)
 
         # Create train/val split
-        train_size = int(len(train_dataset))
-        val_size = int(val_ratio * len(dataset))
+        train_size = len(train_dataset)
+        val_size = int(val_ratio * train_size)
+        if train_size > 1:
+            val_size = max(1, val_size)
+            if val_size >= train_size:
+                val_size = train_size - 1
+        else:
+            val_size = 0
         train_size = train_size - val_size
-        train_dataset, val_dataset = random_split(
-            train_dataset, [train_size, val_size]
-        )
+        if val_size > 0:
+            train_dataset, val_dataset = random_split(
+                train_dataset, [train_size, val_size]
+            )
+        else:
+            val_dataset = torch.utils.data.Subset(train_dataset, [])
 
         test_dataset = torch.utils.data.Subset(dataset, test_idx)
 
